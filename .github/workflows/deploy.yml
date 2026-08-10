@@ -1,0 +1,58 @@
+name: Deploy
+
+# main에 올라가면 그대로 GitHub Pages에 배포한다. 빌드 단계는 없다 —
+# 의존성 제로에 순수 정적 파일이라 저장소 전체를 그대로 올린다.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 배포는 하나씩. 진행 중인 배포를 취소하지 않는다.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: 픽셀맵 검증
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # 스프라이트는 손으로 찍은 문자열 픽셀맵이다. 줄 길이가 하나만 어긋나도
+      # 그림 전체가 밀리므로, 굽기 전에 하는 검사를 CI에서도 돌린다.
+      - name: validateMaps()
+        run: |
+          node -e "
+          import('./src/sprites.js').then((m) => {
+            const bad = m.validateMaps();
+            if (bad.length) { console.error(bad.join('\n')); process.exit(1); }
+            console.log('sprite maps OK ·', Object.keys(m.MAPS).length, 'frames');
+          });
+          "
+
+  deploy:
+    name: Pages 배포
+    needs: check
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      # enablement: true — Pages가 꺼져 있으면 이 단계가 켠다(첫 배포 때 필요)
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4
