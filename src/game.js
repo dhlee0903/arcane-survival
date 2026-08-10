@@ -8,13 +8,14 @@
 
 import {
   view, PLAYER, RUN_SEC, ENEMY, SCALE, GEM, gemTier, GEM_DRIFT, GEM_CAP,
-  DROP, HEART_HEAL, xpNeed, MAX_LV, MAX_WEAPONS, MAX_PASSIVES, PICK_COUNT, FX,
+  DROP, HEART_HEAL, POT, COIN_VALUE, xpNeed, MAX_LV, MAX_WEAPONS, MAX_PASSIVES,
+  PICK_COUNT, FX,
 } from './config.js';
 import { WEAPONS, WEAPON_IDS, statsOf, evolvableWeapon } from './weapons.js';
 import { modsOf, rollChoices } from './upgrades.js';
 import { Spawner } from './spawner.js';
 import { Animator } from './anim.js';
-import { submitScore } from './storage.js';
+import { submitScore, addGold } from './storage.js';
 
 const TAU = Math.PI * 2;
 // 이보다 멀어진 적은 앞쪽 테두리로 다시 세운다. 화면 크기에 비례한다.
@@ -62,6 +63,8 @@ export class Game {
     this.xp = 0;
     this.xpNext = xpNeed(1);
     this.kills = 0;
+    this.gold = 0;
+    this.potCd = 60 * 4;    // 첫 항아리는 조금 일찍
 
     // 시작 무기는 뱀서처럼 하나만 — 나머지는 레벨업으로 얻는다
     this.weapons = { bolt: 1 };
@@ -113,6 +116,7 @@ export class Game {
     return {
       sec: Math.floor(this.t / 60),
       kills: this.kills,
+      gold: this.gold,
       level: this.level,
       choices: this.choices,
     };
@@ -141,6 +145,7 @@ export class Game {
     this.tickZaps();
     this.tickPatches();
     this.spawner.update(this);
+    this.tickPots();
     this.tickEnemies();
     this.tickPickups();
     this.tickParts();
@@ -301,6 +306,20 @@ export class Game {
     this.patches = keep;
   }
 
+  // 항아리는 적이 아니라 풍경에 놓인 물건이다 — 화면 근처에 띄엄띄엄 놓는다
+  tickPots() {
+    this.potCd -= 1;
+    if (this.potCd > 0) return;
+    this.potCd = POT.every;
+    let alive = 0;
+    for (const e of this.enemies) if (!e.dead && e.prop) alive += 1;
+    if (alive >= POT.max) return;
+    // 화면 안쪽 어딘가 — 너무 가까우면 지나가다 저절로 깨진다
+    const a = this.rnd() * TAU;
+    const d = 60 + this.rnd() * Math.min(view.w, view.h) * 0.45;
+    this.spawn('pot', { x: this.px + Math.cos(a) * d, y: this.py + Math.sin(a) * d });
+  }
+
   // ---- 적 ----
   spawn(kind, at) {
     const def = ENEMY[kind];
@@ -318,6 +337,7 @@ export class Game {
       dmg: Math.round(def.dmg * SCALE.dmg(min)),
       boss: !!def.boss,
       elite: !!def.elite,
+      prop: !!def.prop,
       face: -1,
       kx: 0,
       ky: 0,
@@ -346,6 +366,8 @@ export class Game {
       e.t += 1;
       if (e.flash > 0) e.flash -= 1;
       if (e.flashCd > 0) e.flashCd -= 1;
+
+      if (e.prop) { alive.push(e); continue; }   // 항아리는 제자리에 가만히 있는다
 
       let dx = this.px - e.x;
       let dy = this.py - e.y;
@@ -423,6 +445,7 @@ export class Game {
     }
     if (e.hp > 0) return;
     e.dead = true;
+    if (e.prop) { this.breakPot(e); return; }
     this.kills += 1;
     this.killDrop(e);
   }
@@ -452,6 +475,18 @@ export class Game {
     g.xp += this.gems[far].xp;
     g.tier = gemTier(g.xp);
     this.gems.splice(far, 1);
+  }
+
+  // 항아리를 부수면 자석 · 금화 · 회복 중 하나가 나온다
+  breakPot(e) {
+    this.spark(e.x, e.y, 12, '#c98f66');
+    let r = this.rnd();
+    let kind = POT.loot[POT.loot.length - 1][0];
+    for (const [k, w] of POT.loot) {
+      if (r < w) { kind = k; break; }
+      r -= w;
+    }
+    this.drops.push({ kind, x: e.x, y: e.y, life: DROP.life });
   }
 
   killDrop(e) {
@@ -530,7 +565,12 @@ export class Game {
   }
 
   collect(d) {
-    if (d.kind === 'heart') {
+    if (d.kind === 'coin') {
+      const [lo, hi] = COIN_VALUE;
+      const amount = lo + Math.floor(this.rnd() * (hi - lo + 1));
+      this.gold += amount;
+      this.banner(`금화 +${amount}`, 50);
+    } else if (d.kind === 'heart') {
       this.hp = Math.min(this.maxHp, this.hp + HEART_HEAL);
       this.banner('회복', 60);
     } else if (d.kind === 'magnet') {
@@ -690,6 +730,7 @@ export class Game {
   finish(phase) {
     this.phase = phase;
     this.result = submitScore(this.sec);
+    this.totalGold = addGold(this.gold);
     this.emit();
   }
 }

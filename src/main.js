@@ -5,7 +5,7 @@ import { Game } from './game.js';
 import { Renderer } from './renderer.js';
 import { InputController } from './input.js';
 import { STEP_MS, MAX_CATCHUP, RUN_SEC } from './config.js';
-import { getBest, mmss } from './storage.js';
+import { getBest, mmss, totalGold } from './storage.js';
 import { evoRecipes } from './weapons.js';
 import { PASSIVES } from './upgrades.js';
 import { attachDebug } from './debug.js';
@@ -105,10 +105,11 @@ function handleState(state, p) {
 
   const r = game.result || { best: getBest(), isNewBest: false };
   const line = r.isNewBest ? '<b>신기록</b>' : `최고 ${mmss(r.best)}`;
+  const gold = `금화 ${p.gold}`;
   if (state === 'clear') {
-    showOverlay('ALL CLEAR', `15분 생존 · 처치 ${p.kills}<br>${line}`, '다시 하기');
+    showOverlay('ALL CLEAR', `15분 생존 · 처치 ${p.kills} · ${gold}<br>${line}`, '다시 하기');
   } else {
-    showOverlay('GAME OVER', `생존 ${mmss(p.sec)} · 처치 ${p.kills}<br>${line}`, '다시 하기');
+    showOverlay('GAME OVER', `생존 ${mmss(p.sec)} · 처치 ${p.kills} · ${gold}<br>${line}`, '다시 하기');
   }
 }
 
@@ -176,6 +177,7 @@ showOverlay(
   '<span class="title">아케인 서바이벌</span><span class="sub">ARCANE SURVIVAL</span>',
   `이동만 하면 된다 · 공격은 자동<br>${RUN_SEC / 60}분을 버티면 승리`
   + `<br><span class="dim">PC: 방향키 · WASD / 모바일: 화면을 끌어서</span>`
-  + (best ? `<br><span class="dim">최고 생존 ${mmss(best)}</span>` : ''),
+  + (best ? `<br><span class="dim">최고 생존 ${mmss(best)}</span>` : '')
+  + (totalGold() ? `<span class="dim"> · 모은 금화 ${totalGold()}</span>` : ''),
   '시작',
 );

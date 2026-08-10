@@ -204,8 +204,7 @@ export class Renderer {
 
     for (const a of list) {
       if (a.player) { this.player(c, g); continue; }
-      const clip = ENEMY_CLIP[a.kind];
-      const name = frameAt(clip, a.t);
+      const name = frameAt(ENEMY[a.kind].clip, a.t);
       this.blit(c, name, a.x + this.ox, a.y + this.oy + a.r, { flip: a.face < 0, tint: a.flash > 0 });
       if (a.boss || a.elite) this.hpBar(c, a);
     }
@@ -333,6 +332,9 @@ export class Renderer {
 
     this.text(c, `LV ${g.level}`, 5, 29, '#ffd23f', 1);
     this.text(c, `KILL ${g.kills}`, 41, 29, '#9fb0c8', 1);
+    // 금화 — 항아리에서 나온다
+    this.blit(c, 'coin', 8, 43, { mid: true });
+    this.text(c, String(g.gold), 14, 40, '#ffd23f', 1);
 
     this.slots(c, g);
     this.text(c, VERSION, view.w - 24, view.h - 8, 'rgba(255,255,255,.3)', 1);
@@ -398,10 +400,6 @@ export class Renderer {
     this.text(c, `SHEET ${this.sheet.width}X${this.sheet.height}`, 6, 8, '#7ff0ff', 1);
   }
 }
-
-const ENEMY_CLIP = {
-  bat: 'bat', slime: 'slime', skeleton: 'skeleton', ghost: 'ghost', golem: 'golem', lich: 'lich',
-};
 
 // 도트 타원 — 스프라이트가 아닌 범위 표시(오라·장판)에 쓴다
 function ellipse(c, cx, cy, rx, ry, color) {

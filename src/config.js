@@ -78,7 +78,24 @@ export const ENEMY = {
   ghost:    { hp: 28,  speed: 1.16, dmg: 10, r: 7,  gem: 1, knock: 0.5,  clip: 'ghost' },
   golem:    { hp: 170, speed: 0.62, dmg: 16, r: 12, gem: 2, knock: 0.15, clip: 'golem', elite: true },
   lich:     { hp: 820, speed: 0.58, dmg: 20, r: 15, gem: 2, knock: 0,    clip: 'lich',  boss: true },
+  // 항아리 — 적이 아니라 부술 수 있는 물건이다. 적과 같은 배열에 담아 두면
+  // 피격·조준 코드를 그대로 쓸 수 있어서 kind 하나로 끝난다(prop 플래그로 구분).
+  pot:      { hp: 1,   speed: 0,    dmg: 0,  r: 9,  gem: 0, knock: 0,    clip: 'pot',   prop: true },
 };
+
+// 항아리 — 화면 근처에 띄엄띄엄 놓인다. 부수면 자석 · 금화 · 회복 중 하나가 나온다.
+export const POT = {
+  every: 60 * 9,        // 소환 간격(스텝)
+  max: 5,               // 동시에 존재할 수 있는 수
+  loot: [
+    ['coin', 0.55],
+    ['heart', 0.25],
+    ['magnet', 0.20],
+  ],
+};
+
+export const COIN_VALUE = [3, 12];   // 금화 하나가 주는 골드 범위
+export const KEY_GOLD = 'og-gold-day10';
 
 // 시간이 갈수록 강해진다 — 분 단위로 곱해지는 배율.
 // 무기 강화가 6단계에서 멈추므로 체력 배율을 너무 세게 주면 후반이 벽이 된다.

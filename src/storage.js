@@ -1,6 +1,6 @@
 // 최고 기록(생존 시간, 초) 저장. 홈 카드와 같은 키를 쓴다. 실패해도 조용히 넘어간다.
 
-import { KEY_BEST } from './config.js';
+import { KEY_BEST, KEY_GOLD } from './config.js';
 
 export function getBest() {
   try { return Number(localStorage.getItem(KEY_BEST)) || 0; } catch { return 0; }
@@ -14,6 +14,17 @@ export function submitScore(sec) {
     return { best: sec, isNewBest: true };
   }
   return { best, isNewBest: false };
+}
+
+// 판을 넘어 쌓이는 총 금화 — 지금은 기록용이다(다음에 영구 강화에 쓸 자리)
+export function addGold(amount) {
+  const total = totalGold() + Math.max(0, amount);
+  try { localStorage.setItem(KEY_GOLD, String(total)); } catch { /* ignore */ }
+  return total;
+}
+
+export function totalGold() {
+  try { return Number(localStorage.getItem(KEY_GOLD)) || 0; } catch { return 0; }
 }
 
 export function mmss(sec) {

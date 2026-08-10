@@ -12,6 +12,8 @@ export const CLIPS = {
   ghost: { frames: ['ghost.0', 'ghost.1'], hold: 18, loop: true },
   golem: { frames: ['golem.0', 'golem.1'], hold: 16, loop: true },
   lich: { frames: ['lich.0', 'lich.1'], hold: 20, loop: true },
+  // 항아리는 가만히 있는다 — 한 장짜리 클립(그려지는 경로를 적과 똑같이 쓰려고 둔다)
+  pot: { frames: ['pot'], hold: 60, loop: true },
 
   bolt: { frames: ['bolt.0', 'bolt.1'], hold: 4, loop: true },
   rune: { frames: ['rune.0', 'rune.1'], hold: 6, loop: true },
