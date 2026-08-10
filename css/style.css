@@ -133,3 +133,26 @@ canvas {
   .card .nm { font-size: 13px; }
   .card .ln { font-size: 11px; }
 }
+
+/* ---- 디버그 콘솔 (PC 전용) ---- */
+.debug {
+  position: fixed; top: 10px; left: 10px; z-index: 80;
+  display: none; flex-direction: column; gap: 6px;
+  width: 340px; padding: 10px;
+  background: rgba(10, 7, 20, .92); border: 1px solid #3a2f63;
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
+  color: var(--text);
+}
+.debug.show { display: flex; }
+.dbg-head { display: flex; align-items: baseline; gap: 8px; }
+.dbg-head b { letter-spacing: .18em; color: var(--accent); }
+.dbg-hint { color: var(--faint); font-size: 10px; }
+.dbg-stat { margin: 0; white-space: pre; line-height: 1.5; color: #b9b2d6; }
+.dbg-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.debug button {
+  font-family: inherit; font-size: 11px; cursor: pointer;
+  padding: 4px 8px; color: var(--text);
+  background: #221a3d; border: 1px solid #3a2f63; border-radius: 0;
+}
+.debug button:hover { border-color: var(--faint); }
+.debug button.on { background: var(--accent); border-color: var(--accent); color: #2a1c0a; font-weight: 700; }

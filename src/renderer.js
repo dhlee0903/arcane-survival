@@ -23,6 +23,7 @@ export class Renderer {
     this.tinted = tinted;
     this.frames = frames;
     this.showSheet = false;      // 디버그: 아틀라스를 화면에 띄운다
+    this.showHitbox = false;     // 디버그: 실제 판정 원을 그린다
     this.resize();
   }
 
@@ -87,6 +88,7 @@ export class Renderer {
     this.projectiles(c, g);
     this.zaps(c, g);
     this.parts(c, g);
+    if (this.showHitbox) this.hitboxes(c, g);
     this.stick(c, g);
     this.hud(c, g);
     if (this.showSheet) this.sheetOverlay(c);
@@ -260,6 +262,28 @@ export class Renderer {
     c.globalAlpha = 0.5;
     ellipse(c, s.x + s.dx, s.y + s.dy, 8, 8, '#e6edf3');
     c.restore();
+  }
+
+  // 그림이 아니라 실제로 맞는 크기를 본다 — 그림보다 작다
+  hitboxes(c, g) {
+    c.strokeStyle = 'rgba(255,90,99,.9)';
+    c.lineWidth = 1;
+    for (const e of g.enemies) {
+      if (e.dead || !this.onScreen(e.x, e.y, 20)) continue;
+      c.beginPath();
+      c.arc(Math.round(e.x + this.ox), Math.round(e.y + this.oy), e.r, 0, Math.PI * 2);
+      c.stroke();
+    }
+    c.strokeStyle = 'rgba(127,240,255,.95)';
+    c.beginPath();
+    c.arc(Math.round(g.px + this.ox), Math.round(g.py + this.oy - 6), PLAYER.r, 0, Math.PI * 2);
+    c.stroke();
+    c.strokeStyle = 'rgba(163,113,247,.55)';
+    for (const p of g.projectiles) {
+      c.beginPath();
+      c.arc(Math.round(p.x + this.ox), Math.round(p.y + this.oy), p.r, 0, Math.PI * 2);
+      c.stroke();
+    }
   }
 
   onScreen(x, y, m = 0) {

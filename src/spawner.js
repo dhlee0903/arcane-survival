@@ -48,6 +48,11 @@ export class Spawner {
     this.phase = PHASES[0];
   }
 
+  // 시간을 건너뛸 때, 지나친 사건을 몰아서 터뜨리지 않고 지나간 것으로 표시한다
+  catchUp(t) {
+    while (this.nextEvent < EVENTS.length && t >= EVENTS[this.nextEvent].at) this.nextEvent += 1;
+  }
+
   update(g) {
     // 현재 구간 갱신
     for (let i = PHASES.length - 1; i >= 0; i -= 1) {

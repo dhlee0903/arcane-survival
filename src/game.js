@@ -80,6 +80,7 @@ export class Game {
     this.runeA = 0;
     this.auraPulse = 0;
 
+    this.god = false;       // 디버그 콘솔에서만 켠다
     this.stick = null;      // input.js가 채운다(가상 스틱 표시용)
     this.inx = 0;
     this.iny = 0;
@@ -479,6 +480,7 @@ export class Game {
   }
 
   hurt(dmg) {
+    if (this.god) return;          // 디버그 콘솔의 무적
     this.hp -= dmg;
     this.hurtCd = PLAYER.hurtCd;
     this.shake = Math.max(this.shake, FX.shakeHurt);
@@ -653,6 +655,13 @@ export class Game {
       if (p.life > 0) keep.push(p);
     }
     this.parts = keep;
+  }
+
+  // 디버그용 시간 점프. 건너뛴 구간의 사건(보스·포위)은 한꺼번에 터지지 않도록
+  // 지나간 것으로 처리한다.
+  skipSeconds(sec) {
+    this.t += sec * 60;
+    this.spawner.catchUp(this.t);
   }
 
   banner(text, life) {

@@ -6,6 +6,7 @@ import { Renderer } from './renderer.js';
 import { InputController } from './input.js';
 import { STEP_MS, MAX_CATCHUP, RUN_SEC } from './config.js';
 import { getBest, mmss } from './storage.js';
+import { attachDebug } from './debug.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -97,6 +98,12 @@ function handleState(state, p) {
 let acc = 0;
 let prev = 0;
 
+// 디버그 콘솔이 읽고 쓰는 시계. scale은 슬로우·정지·배속용(평소엔 1).
+const clock = { scale: 1, fps: 0, ms: 0, step: 0 };
+let fpsCount = 0;
+let fpsAt = 0;
+const debug = attachDebug({ game, renderer, clock });
+
 function syncChrome() {
   const playing = game.phase === 'playing' && !game.paused;
   pauseEl.classList.toggle('show', game.paused);
@@ -114,6 +121,7 @@ function syncChrome() {
 function loop(now) {
   requestAnimationFrame(loop);
   syncChrome();
+  if (debug) debug.update();          // 멈춰 있어도 계속 갱신된다
   if (game.paused || game.phase !== 'playing') {
     acc = 0;
     prev = now;
@@ -123,16 +131,22 @@ function loop(now) {
   if (!prev) { prev = now; renderer.render(game); return; }
 
   const dt = Math.min(now - prev, 250);
-  acc += dt;
+  acc += dt * clock.scale;
   prev = now;
 
+  clock.ms = dt;
+  fpsCount += 1;
+  if (now - fpsAt >= 500) { clock.fps = Math.round((fpsCount * 1000) / (now - fpsAt)); fpsCount = 0; fpsAt = now; }
+
+  const t0 = performance.now();
   let steps = 0;
   while (acc >= STEP_MS && steps < MAX_CATCHUP) {
     game.update();
     acc -= STEP_MS;
     steps += 1;
   }
-  if (steps === MAX_CATCHUP) acc = 0;
+  if (steps === MAX_CATCHUP) acc = 0;   // 못 따라잡을 만큼 밀리면 빚을 버린다
+  clock.step = performance.now() - t0;
 
   renderer.render(game);
 }
