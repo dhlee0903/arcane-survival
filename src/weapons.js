@@ -26,6 +26,7 @@ export const WEAPONS = {
   bolt: {
     name: '마력 화살',
     icon: 'item.bolt',
+    evo: { into: 'starfall', needs: 'might' },
     desc: '가장 가까운 적에게 마력 덩어리를 쏜다',
     up: [
       '투사체 2개',
@@ -61,6 +62,7 @@ export const WEAPONS = {
   shard: {
     name: '서리 파편',
     icon: 'item.shard',
+    evo: { into: 'blizzard', needs: 'focus' },
     desc: '바라보는 방향으로 파편을 던진다 · 적을 뚫는다',
     up: [
       '파편 2개',
@@ -94,6 +96,7 @@ export const WEAPONS = {
   rune: {
     name: '수호 룬',
     icon: 'item.rune',
+    evo: { into: 'sanctum', needs: 'area' },
     desc: '몸 주위를 도는 룬 · 닿은 적에게 피해',
     up: ['룬 2개', '룬 3개', '피해 · 범위 증가', '룬 4개', '룬 5개 · 회전 가속'],
     lv: table([
@@ -111,6 +114,7 @@ export const WEAPONS = {
   aura: {
     name: '화염 오라',
     icon: 'item.aura',
+    evo: { into: 'inferno', needs: 'vigor' },
     desc: '몸 주위를 태운다 · 적을 밀어낸다',
     up: ['범위 · 피해 증가', '범위 · 피해 증가', '주기 단축', '범위 · 피해 증가', '범위 대폭 증가'],
     lv: table([
@@ -140,6 +144,7 @@ export const WEAPONS = {
   zap: {
     name: '연쇄 번개',
     icon: 'item.zap',
+    evo: { into: 'judgement', needs: 'wisdom' },
     desc: '화면 안의 적에게 번개를 떨어뜨린다',
     up: ['번개 2줄기', '번개 3줄기', '번개 4줄기', '번개 5줄기', '번개 7줄기 · 대기 단축'],
     lv: table([
@@ -163,6 +168,7 @@ export const WEAPONS = {
   brand: {
     name: '불의 낙인',
     icon: 'item.brand',
+    evo: { into: 'ashtrail', needs: 'swift' },
     desc: '발밑에 불을 남긴다 · 지나가는 적이 탄다',
     up: ['지속 증가', '낙인 2개', '범위 · 피해 증가', '낙인 3개', '범위 대폭 증가'],
     lv: table([
@@ -187,7 +193,109 @@ export const WEAPONS = {
   },
 };
 
-export const WEAPON_IDS = Object.keys(WEAPONS);
+// ---- 진화 무기 ----
+// 뱀서 방식: 무기를 만렙까지 올리고 지정된 패시브를 갖춘 상태에서 **상자를 열면** 진화한다.
+// 카드 풀에는 절대 오르지 않는다(evolved 플래그).
+const EVOLVED = {
+  starfall: {
+    name: '별의 파편',
+    icon: 'item.bolt',
+    evolved: true,
+    from: 'bolt',
+    desc: '여섯 갈래 별빛이 가장 가까운 적들을 꿰뚫는다',
+    lv: table([{ count: 6, cd: 26, dmg: 34, pierce: 2, speed: 5.2, r: 6 }]),
+    fire: (g, st) => WEAPONS.bolt.fire(g, st),
+  },
+  blizzard: {
+    name: '눈보라',
+    icon: 'item.shard',
+    evolved: true,
+    from: 'shard',
+    desc: '앞뒤로 파편을 흩뿌린다 · 관통 5',
+    lv: table([{ count: 8, cd: 22, dmg: 22, pierce: 5, speed: 7, r: 6 }]),
+    fire(g, s) {
+      // 앞뒤 양쪽으로 부채꼴
+      for (let i = 0; i < s.count; i += 1) {
+        const back = i % 2 === 1;
+        const a = (g.faceX >= 0) === !back ? 0 : Math.PI;
+        const off = (Math.floor(i / 2) - (s.count / 2 - 1) / 2) * 9;
+        g.addProjectile({
+          x: g.px, y: g.py - 8 + off, a, speed: s.speed,
+          dmg: s.dmg, pierce: s.pierce, r: s.r, clip: null, spr: 'shard',
+          flip: a !== 0, life: 100,
+        });
+      }
+    },
+  },
+  sanctum: {
+    name: '성역',
+    icon: 'item.rune',
+    evolved: true,
+    from: 'rune',
+    desc: '일곱 룬이 넓게 공전하며 접근을 막는다',
+    lv: table([{ n: 7, dmg: 46, rad: 62, spin: 0.1 }]),
+    passive: true,
+  },
+  inferno: {
+    name: '지옥불',
+    icon: 'item.aura',
+    evolved: true,
+    from: 'aura',
+    desc: '몸 주위가 불바다가 된다 · 강한 넉백',
+    lv: table([{ rad: 86, dmg: 26, cd: 24 }]),
+    fire: (g, st) => WEAPONS.aura.fire(g, st),
+  },
+  judgement: {
+    name: '천벌',
+    icon: 'item.zap',
+    evolved: true,
+    from: 'zap',
+    desc: '열 줄기 번개가 한꺼번에 떨어진다',
+    lv: table([{ n: 10, cd: 80, dmg: 72, splash: 30 }]),
+    fire: (g, st) => WEAPONS.zap.fire(g, st),
+  },
+  ashtrail: {
+    name: '잿길',
+    icon: 'item.brand',
+    evolved: true,
+    from: 'brand',
+    desc: '지나간 자리마다 불이 남는다',
+    lv: table([{ n: 1, cd: 24, rad: 26, dmg: 12, life: 150 }]),
+    fire(g, s) {
+      g.patches.push({ x: g.px, y: g.py, r: s.rad, dmg: s.dmg, life: s.life, t: 0, tick: 0 });
+    },
+  },
+};
+
+Object.assign(WEAPONS, EVOLVED);
+
+export const WEAPON_IDS = Object.keys(WEAPONS).filter((id) => !WEAPONS[id].evolved);
+export const EVOLVED_IDS = Object.keys(EVOLVED);
+
+// 어떤 무기가 지금 진화할 수 있는지 — 만렙 + 필요한 패시브 보유
+export function evolvableWeapon(weapons, passives, maxLv) {
+  for (const id of Object.keys(weapons)) {
+    const def = WEAPONS[id];
+    if (!def || !def.evo) continue;
+    if (weapons[id] < maxLv) continue;
+    if (!passives[def.evo.needs]) continue;
+    return { from: id, into: def.evo.into };
+  }
+  return null;
+}
+
+// 조합식 목록(일시정지 화면에 보여준다)
+export function evoRecipes() {
+  return WEAPON_IDS
+    .filter((id) => WEAPONS[id].evo)
+    .map((id) => ({
+      from: WEAPONS[id].name,
+      fromIcon: WEAPONS[id].icon,
+      needs: WEAPONS[id].evo.needs,
+      into: WEAPONS[WEAPONS[id].evo.into].name,
+      intoIcon: WEAPONS[WEAPONS[id].evo.into].icon,
+    }));
+}
 
 // 레벨 + 패시브 보정을 먹인 최종 수치
 export function statsOf(id, level, mods) {

@@ -39,7 +39,8 @@ body {
 .wrap { position: fixed; inset: 0; }
 .board-wrap { position: absolute; inset: 0; }
 
-canvas {
+/* 게임판만 창을 채운다. 이 규칙을 canvas 전체에 걸면 아이콘용 캔버스까지 늘어난다. */
+#board {
   display: block; width: 100%; height: 100%;
   touch-action: none; cursor: crosshair;
   image-rendering: pixelated; /* 확대돼도 도트가 뭉개지지 않게 */
@@ -156,3 +157,20 @@ canvas {
 }
 .debug button:hover { border-color: var(--faint); }
 .debug button.on { background: var(--accent); border-color: var(--accent); color: #2a1c0a; font-weight: 700; }
+
+/* ---- 진화 조합식 (일시정지 화면) ---- */
+.recipes {
+  display: flex; flex-direction: column; gap: 4px;
+  margin: 4px 0 12px; width: 100%; max-width: 340px;
+}
+.recipe {
+  display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  font-size: 11px; color: var(--dim);
+  background: rgba(22, 17, 42, .8); border: 1px solid var(--line);
+  padding: 3px 6px;
+}
+.recipe canvas { display: block; image-rendering: pixelated; flex: none; width: auto; height: auto; }
+.recipe .rn { color: var(--text); }
+.recipe i { font-style: normal; color: var(--accent); font-size: 10px; }
+.recipe .plus, .recipe .arrow { color: var(--faint); }
+.recipe b { color: var(--accent); margin-left: auto; }

@@ -6,6 +6,8 @@ import { Renderer } from './renderer.js';
 import { InputController } from './input.js';
 import { STEP_MS, MAX_CATCHUP, RUN_SEC } from './config.js';
 import { getBest, mmss } from './storage.js';
+import { evoRecipes } from './weapons.js';
+import { PASSIVES } from './upgrades.js';
 import { attachDebug } from './debug.js';
 
 const $ = (id) => document.getElementById(id);
@@ -24,7 +26,23 @@ const game = new Game({ onState: handleState });
 // eslint-disable-next-line no-new
 new InputController($('board'), game);
 
-gearBtn.addEventListener('click', () => game.setPaused(true));
+// 일시정지 화면에 진화 조합식을 깔아 둔다 — 안 보여주면 알 방법이 없다
+function fillRecipes() {
+  const box = $('recipes');
+  if (box.childElementCount) return;
+  for (const r of evoRecipes()) {
+    const row = document.createElement('div');
+    row.className = 'recipe';
+    row.innerHTML = `<span class="rn">${r.from}</span><i>Lv6</i>`
+      + `<span class="plus">+</span><span class="rn">${PASSIVES[r.needs].name}</span>`
+      + `<span class="arrow">→</span><b>${r.into}</b>`;
+    row.prepend(iconCanvas(r.fromIcon, 1.5));
+    row.appendChild(iconCanvas(r.intoIcon, 1.5));
+    box.appendChild(row);
+  }
+}
+
+gearBtn.addEventListener('click', () => { fillRecipes(); game.setPaused(true); });
 $('pResume').addEventListener('click', () => game.setPaused(false));
 $('pRestart').addEventListener('click', () => { game.setPaused(false); game.reset(); game.start(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) game.setPaused(true); });
@@ -67,15 +85,15 @@ function showCards(choices, level) {
   levelup.classList.add('show');
 }
 
-function iconCanvas(name) {
+function iconCanvas(name, mul = 3) {
   const f = renderer.frames[name];
-  const s = 3;
+  const s = mul / (f.art || 1);
   const cv = document.createElement('canvas');
-  cv.width = f.w * s;
-  cv.height = f.h * s;
+  cv.width = Math.round(f.w * s);
+  cv.height = Math.round(f.h * s);
   const c = cv.getContext('2d');
   c.imageSmoothingEnabled = false;
-  c.drawImage(renderer.sheet, f.x, f.y, f.w, f.h, 0, 0, f.w * s, f.h * s);
+  c.drawImage(renderer.sheet, f.x, f.y, f.w, f.h, 0, 0, cv.width, cv.height);
   return cv;
 }
 

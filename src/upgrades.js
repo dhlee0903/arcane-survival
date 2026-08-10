@@ -79,6 +79,7 @@ export function rollChoices(state, n, rnd) {
       pool.push(weaponCard(id, lv));
     }
   }
+  // 진화 무기가 차지한 칸도 슬롯을 쓴다 — 새 무기 여유는 실제 보유 수로 센다
   for (const id of PASSIVE_IDS) {
     const lv = state.passives[id] || 0;
     if (lv === 0) {

@@ -10,7 +10,7 @@ import {
   view, PLAYER, RUN_SEC, ENEMY, SCALE, GEM, gemTier, GEM_DRIFT, GEM_CAP,
   DROP, HEART_HEAL, xpNeed, MAX_LV, MAX_WEAPONS, MAX_PASSIVES, PICK_COUNT, FX,
 } from './config.js';
-import { WEAPONS, WEAPON_IDS, statsOf } from './weapons.js';
+import { WEAPONS, WEAPON_IDS, statsOf, evolvableWeapon } from './weapons.js';
 import { modsOf, rollChoices } from './upgrades.js';
 import { Spawner } from './spawner.js';
 import { Animator } from './anim.js';
@@ -193,9 +193,9 @@ export class Game {
 
   // 수호 룬 — 발사가 아니라 항상 돌고 있다
   tickRunes() {
-    const lv = this.weapons.rune;
-    if (!lv) { this.orbs.length = 0; return; }
-    const s = statsOf('rune', lv, this.mods);
+    const id = this.weapons.sanctum ? 'sanctum' : (this.weapons.rune ? 'rune' : null);
+    if (!id) { this.orbs.length = 0; return; }
+    const s = statsOf(id, this.weapons[id], this.mods);
     this.runeA = (this.runeA + s.spin) % TAU;
     this.orbs.length = 0;
     for (let i = 0; i < s.n; i += 1) {
@@ -541,8 +541,26 @@ export class Game {
     }
   }
 
-  // 상자 — 가진 무기 하나가 즉시 한 단계 오른다(전부 만렙이면 회복)
+  // 상자 — 뱀서와 같은 규칙이다.
+  //   1) 진화 조합(만렙 무기 + 지정 패시브)이 갖춰져 있으면 그 무기가 진화한다
+  //   2) 아니면 가진 무기 하나가 한 단계 오른다
+  //   3) 전부 만렙이면 회복
   openChest() {
+    const evo = evolvableWeapon(this.weapons, this.passives, MAX_LV);
+    if (evo) {
+      delete this.weapons[evo.from];
+      delete this.wcd[evo.from];
+      this.weapons[evo.into] = MAX_LV;
+      this.wcd[evo.into] = 10;
+      this.banner(`진화 · ${WEAPONS[evo.into].name}`, 160);
+      this.shake = Math.max(this.shake, 6);
+      this.spark(this.px, this.py - 8, 40, '#ffd23f');
+      return;
+    }
+    this.openChestLevel();
+  }
+
+  openChestLevel() {
     const canLevel = Object.keys(this.weapons).filter((id) => this.weapons[id] < MAX_LV);
     const canLearn = Object.keys(this.weapons).length < MAX_WEAPONS
       ? WEAPON_IDS.filter((id) => !this.weapons[id]) : [];

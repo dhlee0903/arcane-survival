@@ -2,7 +2,8 @@
 // 모든 그림은 시작할 때 구운 **스프라이트시트 한 장**에서 잘라 쓴다(this.sheet).
 // 카메라는 항상 마법사를 화면 한가운데 둔다.
 
-import { view, setView, PLAYER, VERSION, GEM, RUN_SEC, MAX_WEAPONS, MAX_PASSIVES, MAX_LV } from './config.js';
+import { view, setView, PLAYER, VERSION, GEM, ENEMY, RUN_SEC, MAX_WEAPONS, MAX_PASSIVES, MAX_LV } from './config.js';
+import { evolvableWeapon } from './weapons.js';
 import { buildSheet, FONT } from './sprites.js';
 import { frameAt } from './anim.js';
 import { WEAPONS } from './weapons.js';
@@ -182,8 +183,9 @@ export class Renderer {
   }
 
   aura(c, g) {
-    if (!g.weapons.aura) return;
-    const s = WEAPONS.aura.lv[g.weapons.aura - 1];
+    const id = g.weapons.inferno ? 'inferno' : (g.weapons.aura ? 'aura' : null);
+    if (!id) return;
+    const s = WEAPONS[id].lv[g.weapons[id] - 1];
     const r = Math.round(s.rad * g.mods.area);
     const x = g.px + this.ox;
     const y = g.py + this.oy - 6;
@@ -339,7 +341,13 @@ export class Renderer {
   // 가진 아이템 — 뱀서처럼 두 줄로 나눈다. 위가 공격, 아래가 패시브.
   // 빈 칸도 그려서 앞으로 몇 개를 더 들 수 있는지 보이게 한다.
   slots(c, g) {
-    const weapons = Object.keys(g.weapons).map((id) => ({ icon: WEAPONS[id].icon, lv: g.weapons[id] }));
+    // 진화 준비가 끝난 무기는 칸을 금색으로 물들여 알려준다(상자를 열면 진화한다)
+    const ready = evolvableWeapon(g.weapons, g.passives, MAX_LV);
+    const weapons = Object.keys(g.weapons).map((id) => ({
+      icon: WEAPONS[id].icon,
+      lv: g.weapons[id],
+      hot: (ready && ready.from === id) || !!WEAPONS[id].evolved,
+    }));
     const passives = Object.keys(g.passives).map((id) => ({ icon: PASSIVES[id].icon, lv: g.passives[id] }));
     const y = view.h - SLOT * 2 - 6;
     this.slotRow(c, y, MAX_WEAPONS, weapons, '#7ff0ff');
@@ -352,7 +360,7 @@ export class Renderer {
       const it = items[i];
       c.fillStyle = it ? 'rgba(11,7,24,.8)' : 'rgba(11,7,24,.35)';
       c.fillRect(x, y, SLOT, SLOT);
-      c.strokeStyle = it ? tone : 'rgba(255,255,255,.12)';
+      c.strokeStyle = it ? (it.hot ? '#ffd23f' : tone) : 'rgba(255,255,255,.12)';
       c.lineWidth = 1;
       c.strokeRect(x + 0.5, y + 0.5, SLOT - 1, SLOT - 1);
       if (!it) continue;
