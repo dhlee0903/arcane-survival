@@ -7,7 +7,7 @@
 //   · 15분을 버티면 클리어
 
 import {
-  W, H, PLAYER, RUN_SEC, ENEMY, SCALE, GEM, gemTier, GEM_DRIFT, GEM_CAP,
+  view, PLAYER, RUN_SEC, ENEMY, SCALE, GEM, gemTier, GEM_DRIFT, GEM_CAP,
   DROP, HEART_HEAL, xpNeed, MAX_LV, MAX_WEAPONS, MAX_PASSIVES, PICK_COUNT, FX,
 } from './config.js';
 import { WEAPONS, WEAPON_IDS, statsOf } from './weapons.js';
@@ -17,7 +17,8 @@ import { Animator } from './anim.js';
 import { submitScore } from './storage.js';
 
 const TAU = Math.PI * 2;
-const RECYCLE_D = 620;    // 이보다 멀어진 적은 앞쪽 테두리로 다시 세운다
+// 이보다 멀어진 적은 앞쪽 테두리로 다시 세운다. 화면 크기에 비례한다.
+const recycleDist = () => Math.max(view.w, view.h) * 1.7;
 
 // 시드 난수 — 같은 판에서 나오는 무작위를 한 군데로 모은다
 function mulberry32(seed) {
@@ -252,7 +253,7 @@ export class Game {
         }
       }
       // 화면에서 한참 벗어나면 버린다
-      if (alive && (Math.abs(p.x - this.px) > W || Math.abs(p.y - this.py) > H)) alive = false;
+      if (alive && (Math.abs(p.x - this.px) > view.w || Math.abs(p.y - this.py) > view.h)) alive = false;
       if (alive) keep.push(p);
     }
     this.projectiles = keep;
@@ -350,7 +351,7 @@ export class Game {
       let d = Math.hypot(dx, dy) || 1;
       // 한참 뒤로 처진 적은 버리지 않고 앞쪽 테두리로 돌려세운다.
       // 안 그러면 달아나는 동안 적이 화면 밖에 끝없이 늘어서기만 한다.
-      if (d > RECYCLE_D && !e.boss) {
+      if (d > recycleDist() && !e.boss) {
         const p = this.spawner.edgePoint(this);
         e.x = p.x;
         e.y = p.y;
@@ -623,7 +624,7 @@ export class Game {
     const out = [];
     for (const e of this.enemies) {
       if (e.dead) continue;
-      if (Math.abs(e.x - this.px) < W / 2 && Math.abs(e.y - this.py) < H / 2) out.push(e);
+      if (Math.abs(e.x - this.px) < view.w / 2 && Math.abs(e.y - this.py) < view.h / 2) out.push(e);
     }
     return out;
   }

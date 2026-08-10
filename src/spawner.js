@@ -3,7 +3,7 @@
 // PHASES: 시간대별 적 구성과 소환 간격. 지난 구간 중 가장 마지막 것이 적용된다.
 // EVENTS: 정해진 시각에 한 번만 터지는 사건(포위 · 엘리트 · 보스).
 
-import { W, H, MAX_ENEMIES } from './config.js';
+import { view, areaScale, MAX_ENEMIES } from './config.js';
 
 const S = (sec) => sec * 60;   // 초 → 스텝
 
@@ -59,11 +59,14 @@ export class Spawner {
       this.nextEvent += 1;
     }
 
-    if (g.enemies.length >= MAX_ENEMIES) return;
+    // 화면이 좁으면 상한도 소환량도 같은 비율로 줄인다(밀도를 맞춘다)
+    const area = areaScale();
+    if (g.enemies.length >= MAX_ENEMIES * area) return;
     this.cd -= 1;
     if (this.cd > 0) return;
     this.cd = this.phase.every;
-    for (let i = 0; i < this.phase.burst; i += 1) {
+    const burst = Math.max(1, Math.round(this.phase.burst * area));
+    for (let i = 0; i < burst; i += 1) {
       g.spawn(this.pick(g), this.edgePoint(g));
     }
   }
@@ -85,8 +88,8 @@ export class Spawner {
   // 무한히 안전해진다(적이 뒤로 늘어서기만 한다).
   edgePoint(g) {
     const m = 26;
-    const halfW = W / 2 + m;
-    const halfH = H / 2 + m;
+    const halfW = view.w / 2 + m;
+    const halfH = view.h / 2 + m;
     const per = (halfW + halfH) * 2;
     let r = g.rnd() * per;
     let dx;
@@ -120,9 +123,10 @@ export class Spawner {
       return;
     }
     if (ev.type === 'ring') {
-      const rad = Math.max(W, H) * 0.62;
-      for (let i = 0; i < ev.n; i += 1) {
-        const a = (i / ev.n) * Math.PI * 2;
+      const rad = Math.max(view.w, view.h) * 0.62;
+      const n = Math.max(6, Math.round(ev.n * Math.sqrt(areaScale())));
+      for (let i = 0; i < n; i += 1) {
+        const a = (i / n) * Math.PI * 2;
         g.spawn(ev.kind, { x: g.px + Math.cos(a) * rad, y: g.py + Math.sin(a) * rad });
       }
       g.banner('포위', 90);
@@ -132,11 +136,12 @@ export class Spawner {
       // 한 변에서 줄지어 밀려온다
       const side = g.rnd() < 0.5 ? -1 : 1;
       const vertical = g.rnd() < 0.5;
-      for (let i = 0; i < ev.n; i += 1) {
-        const off = (i - ev.n / 2) * 16;
+      const n = Math.max(6, Math.round(ev.n * Math.sqrt(areaScale())));
+      for (let i = 0; i < n; i += 1) {
+        const off = (i - n / 2) * 16;
         const p = vertical
-          ? { x: g.px + off, y: g.py + side * (H / 2 + 30 + (i % 3) * 14) }
-          : { x: g.px + side * (W / 2 + 30 + (i % 3) * 14), y: g.py + off };
+          ? { x: g.px + off, y: g.py + side * (view.h / 2 + 30 + (i % 3) * 14) }
+          : { x: g.px + side * (view.w / 2 + 30 + (i % 3) * 14), y: g.py + off };
         g.spawn(ev.kind, p);
       }
       g.banner('무리', 90);
