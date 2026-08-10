@@ -1,4 +1,5 @@
-// 무기 — 뱀파이어 서바이벌처럼 **자동으로** 나간다. 조준도 발사도 플레이어가 하지 않는다.
+// 공격 아이템(무기) — 뱀파이어 서바이벌처럼 **자동으로** 나간다.
+// 조준도 발사도 플레이어가 하지 않는다.
 // 무기마다 레벨 1~6의 수치표를 갖고, fire()에서 게임의 배열에 투사체·장판을 밀어 넣는다.
 //
 // 패시브 보정(mods)은 여기서 한 번에 먹인다.
@@ -6,7 +7,7 @@
 //   cd   = 표 값 × mods.focus   (짧을수록 자주 나간다)
 //   rad  = 표 값 × mods.area
 
-import { MAX_LV } from './config.js';
+import { MAX_LV, view } from './config.js';
 
 const TAU = Math.PI * 2;
 
@@ -24,7 +25,7 @@ function table(rows) {
 export const WEAPONS = {
   bolt: {
     name: '마력 화살',
-    icon: 'bolt.0',
+    icon: 'item.bolt',
     desc: '가장 가까운 적에게 마력 덩어리를 쏜다',
     up: [
       '투사체 2개',
@@ -42,7 +43,8 @@ export const WEAPONS = {
       { count: 4, cd: 32, dmg: 28, pierce: 1 },
     ]),
     fire(g, s) {
-      const targets = g.nearestEnemies(g.px, g.py, 460, s.count);
+      // 조준 범위는 화면에 맞춘다 — 안 보이는 적을 쏘면 탄이 허공으로 사라진다
+      const targets = g.nearestEnemies(g.px, g.py, Math.max(view.w, view.h) * 0.85, s.count);
       for (let i = 0; i < s.count; i += 1) {
         const t = targets[i % Math.max(1, targets.length)];
         // 적이 없으면 바라보는 쪽으로 그냥 쏜다
@@ -58,7 +60,7 @@ export const WEAPONS = {
 
   shard: {
     name: '서리 파편',
-    icon: 'shard',
+    icon: 'item.shard',
     desc: '바라보는 방향으로 파편을 던진다 · 적을 뚫는다',
     up: [
       '파편 2개',
@@ -91,7 +93,7 @@ export const WEAPONS = {
 
   rune: {
     name: '수호 룬',
-    icon: 'rune.0',
+    icon: 'item.rune',
     desc: '몸 주위를 도는 룬 · 닿은 적에게 피해',
     up: ['룬 2개', '룬 3개', '피해 · 범위 증가', '룬 4개', '룬 5개 · 회전 가속'],
     lv: table([
@@ -108,7 +110,7 @@ export const WEAPONS = {
 
   aura: {
     name: '화염 오라',
-    icon: 'flame.0',
+    icon: 'item.aura',
     desc: '몸 주위를 태운다 · 적을 밀어낸다',
     up: ['범위 · 피해 증가', '범위 · 피해 증가', '주기 단축', '범위 · 피해 증가', '범위 대폭 증가'],
     lv: table([
@@ -137,7 +139,7 @@ export const WEAPONS = {
 
   zap: {
     name: '연쇄 번개',
-    icon: 'zap.0',
+    icon: 'item.zap',
     desc: '화면 안의 적에게 번개를 떨어뜨린다',
     up: ['번개 2줄기', '번개 3줄기', '번개 4줄기', '번개 5줄기', '번개 7줄기 · 대기 단축'],
     lv: table([
@@ -160,7 +162,7 @@ export const WEAPONS = {
 
   brand: {
     name: '불의 낙인',
-    icon: 'flame.1',
+    icon: 'item.brand',
     desc: '발밑에 불을 남긴다 · 지나가는 적이 탄다',
     up: ['지속 증가', '낙인 2개', '범위 · 피해 증가', '낙인 3개', '범위 대폭 증가'],
     lv: table([

@@ -41,6 +41,18 @@ export const PAL = {
   rock: { k: '#1a2a1e', S: '#6e7a6a', M: '#a6b09c', v: '#42503f' },
   tuft: { k: '#14301c', g: '#4a8f43' },
   grave: { k: '#12171d', S: '#5f6773', v: '#3a414c', d: '#2c2620' },
+  // 패시브 아이템 아이콘 — 뱀서처럼 패시브도 "주워 든 물건"으로 보여야 한다
+  item: {
+    k: '#14101f',
+    R: '#ff5a63', p: '#ffd0d4',
+    G: '#3fce6a',
+    B: '#4f9bff',
+    Y: '#ffd23f',
+    o: '#ff7a1a', O: '#ffb03a',
+    w: '#c9d3e8', W: '#ffffff',
+    m: '#6b4a2a',
+    v: '#6b3fb0', V: '#a371f7',
+  },
   ground: { a: '#22301f', b: '#26381f', c: '#2c4126', d: '#1c2a1b', e: '#334c2b' },
   path: { a: '#3a3324', b: '#453c2a', c: '#4f4530', d: '#2f2a1e', e: '#564a33' },
 };
@@ -548,9 +560,223 @@ export const MAPS = {
     ],
   },
 
-  'tile.grass0': { pal: 'ground', tile: true, rows: noiseTile(16, GRASS_MIX, 20260810) },
-  'tile.grass1': { pal: 'ground', tile: true, rows: noiseTile(16, GRASS_MIX, 77712) },
-  'tile.path': { pal: 'path', tile: true, rows: noiseTile(16, PATH_MIX, 31337) },
+  // ---- 아이템 아이콘 (모두 11×11) ----
+  // 뱀서처럼 아이템은 두 갈래다 — 공격 아이템(무기)과 패시브 아이템.
+  // 전부 같은 크기로 찍어야 HUD 슬롯이 가지런하고, 투사체 그림을 그대로 쓰면
+  // 오라와 낙인처럼 같은 불꽃을 쓰는 둘을 구분할 수 없다.
+  'item.bolt': {
+    pal: 'item', flat: true,
+    rows: [
+      '.........kk',
+      '........kVk',
+      '.......kVVk',
+      '......kVWVk',
+      '.....kVWVk.',
+      '....kVWVk..',
+      '...kVWVk...',
+      '..kVWVk....',
+      '.kVVVk.....',
+      'kVVk.......',
+      'kk.........',
+    ],
+  },
+  'item.shard': {
+    pal: 'item', flat: true,
+    rows: [
+      '...........',
+      '...........',
+      '........kk.',
+      '.......kBk.',
+      'kkkkkkkBWk.',
+      'kmWBBBBBWBk',
+      'kkkkkkkBWk.',
+      '.......kBk.',
+      '........kk.',
+      '...........',
+      '...........',
+    ],
+  },
+  'item.rune': {
+    pal: 'item', flat: true,
+    rows: [
+      '...kkkkk...',
+      '..kYYYYYk..',
+      '.kYkkkkkYk.',
+      'kYkYYYYYkYk',
+      'kYkYkkkYkYk',
+      'kYkYkWkYkYk',
+      'kYkYkkkYkYk',
+      'kYkYYYYYkYk',
+      '.kYkkkkkYk.',
+      '..kYYYYYk..',
+      '...kkkkk...',
+    ],
+  },
+  'item.aura': {
+    pal: 'item', flat: true,
+    rows: [
+      '.....k.....',
+      '....kOk....',
+      '...kOOOk...',
+      '..kOoooOk..',
+      '.kOokkkoOk.',
+      'kOok...koOk',
+      'kOok...koOk',
+      '.kOokkkoOk.',
+      '..kOoooOk..',
+      '...koook...',
+      '....kkk....',
+    ],
+  },
+  'item.zap': {
+    pal: 'item', flat: true,
+    rows: [
+      '.....kkk...',
+      '....kWBk...',
+      '...kWBk....',
+      '..kWBk.....',
+      '.kWBkkkk...',
+      'kWBBBBBBk..',
+      '.kkkkWBk...',
+      '....kWBk...',
+      '...kWBk....',
+      '..kWk......',
+      '..kk.......',
+    ],
+  },
+  'item.brand': {
+    pal: 'item', flat: true,
+    rows: [
+      '.....k.....',
+      '....kOk....',
+      '...kOok....',
+      '...kOok....',
+      '..kOooOk...',
+      '..kOooOk...',
+      '.kOoooooOk.',
+      '.kOoooooOk.',
+      '..kkkkkkk..',
+      '.kmmmmmmmk.',
+      '..kkkkkkk..',
+    ],
+  },
+
+  'item.might': {
+    pal: 'item', flat: true,
+    rows: [
+      '....kkk....',
+      '...kVVVk...',
+      '..kVWWVVk..',
+      '.kVWVVVVVk.',
+      'kVWVVVVVVVk',
+      'kVVVVVVVVVk',
+      'kVVVVVVVVVk',
+      '.kVVVVVVVk.',
+      '..kVVVVVk..',
+      '...kVVVk...',
+      '....kkk....',
+    ],
+  },
+  'item.swift': {
+    pal: 'item', flat: true,
+    rows: [
+      '........kk.',
+      '.......kWWk',
+      '......kwWWk',
+      '.....kwwWk.',
+      '....kwwWk..',
+      '...kwwWk.k.',
+      '..kwwWk.k..',
+      '.kwwWk.k...',
+      'kwwWk.k....',
+      'kwk.k......',
+      '.k.k.......',
+    ],
+  },
+  'item.vigor': {
+    pal: 'item', flat: true,
+    rows: [
+      '...kkkkk...',
+      '...kmmmk...',
+      '...kwwwk...',
+      '..kwwwwwk..',
+      '.kwRRRRRwk.',
+      'kwRRRRRRRwk',
+      'kwRRRRRRRwk',
+      'kwRRpRRRRwk',
+      'kwRRRRRRRwk',
+      '.kwRRRRRwk.',
+      '..kkkkkkk..',
+    ],
+  },
+  'item.regen': {
+    pal: 'item', flat: true,
+    rows: [
+      '...kkkkk...',
+      '...kmmmk...',
+      '...kwwwk...',
+      '..kwwwwwk..',
+      '.kwGGGGGwk.',
+      'kwGGGGGGGwk',
+      'kwGGGGGGGwk',
+      'kwGGWGGGGwk',
+      'kwGGGGGGGwk',
+      '.kwGGGGGwk.',
+      '..kkkkkkk..',
+    ],
+  },
+  'item.focus': {
+    pal: 'item', flat: true,
+    rows: [
+      'kkkkkkkkkkk',
+      'kmmmmmmmmmk',
+      '.kwYYYYYwk.',
+      '..kwYYYwk..',
+      '...kwYwk...',
+      '....kYk....',
+      '...kwYwk...',
+      '..kwYYYwk..',
+      '.kwYYYYYwk.',
+      'kmmmmmmmmmk',
+      'kkkkkkkkkkk',
+    ],
+  },
+  'item.area': {
+    pal: 'item', flat: true,
+    rows: [
+      '....kkk....',
+      '...kBBBk...',
+      '..kBBBBBk..',
+      '.kBBkkkBBk.',
+      'kBBk...kBBk',
+      'kBk.....kBk',
+      'kBBk...kBBk',
+      '.kBBkkkBBk.',
+      '..kBBBBBk..',
+      '...kBBBk...',
+      '....kkk....',
+    ],
+  },
+  'item.wisdom': {
+    pal: 'item', flat: true,
+    rows: [
+      '...........',
+      '.kkkkkkkkk.',
+      'kwWWWkWWWwk',
+      'kwWWWkWWWwk',
+      'kwWWWkWWWwk',
+      'kwWWWkWWWwk',
+      'kwWWWkWWWwk',
+      'kwWWWkWWWwk',
+      'kvvvvkvvvvk',
+      '.kkkkkkkkk.',
+      '...........',
+    ],
+  },
+
+  'tile.grass0': { pal: 'ground', flat: true, rows: noiseTile(16, GRASS_MIX, 20260810) },
+  'tile.grass1': { pal: 'ground', flat: true, rows: noiseTile(16, GRASS_MIX, 77712) },
+  'tile.path': { pal: 'path', flat: true, rows: noiseTile(16, PATH_MIX, 31337) },
 };
 
 function gemRows() {
@@ -663,17 +889,18 @@ export function validateMaps() {
 const SHEET_W = 256;
 const GAP = 1;
 
-// 캐릭터 프레임은 한 줄 더 높게 굽는다(lift용). 바닥 타일은 이어 붙여야 하므로 딱 맞게.
+// 캐릭터 프레임은 한 줄 더 높게 굽는다(lift용).
+// flat은 그 여유 줄을 빼는 것 — 바닥 타일(이어 붙여야 한다)과 아이콘(가운데 정렬)에 쓴다.
 export function frameSize(m) {
   const half = m.rows[0].length;
-  return { w: m.mirror ? half * 2 - 1 : half, h: m.rows.length + (m.tile ? 0 : 1) };
+  return { w: m.mirror ? half * 2 - 1 : half, h: m.rows.length + (m.flat ? 0 : 1) };
 }
 
 function paintFrame(ctx, m, ox, oy) {
   const pal = PAL[m.pal];
   const half = m.rows[0].length;
   const w = m.mirror ? half * 2 - 1 : half;
-  const top = oy + (m.tile || m.lift ? 0 : 1);
+  const top = oy + (m.flat || m.lift ? 0 : 1);
   for (let y = 0; y < m.rows.length; y += 1) {
     const row = m.rows[y];
     for (let x = 0; x < half; x += 1) {
