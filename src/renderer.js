@@ -50,17 +50,22 @@ export class Renderer {
     const f = this.frames[name];
     if (!f) return;
     const img = opt.tint ? this.tinted : this.sheet;
-    const dx = Math.round(x - f.w / 2);
-    const dy = Math.round(y - (opt.mid ? f.h / 2 : f.h));
+    // art배로 촘촘히 찍은 그림은 그만큼 작게 그린다(화면 크기는 그대로, 밀도만 올라간다).
+    // 반올림도 도트 격자(art) 위에서 해야 확대했을 때 가장자리가 흔들리지 않는다.
+    const a = f.art || 1;
+    const w = f.w / a;
+    const h = f.h / a;
+    const dx = Math.round(x * a - f.w / 2) / a;
+    const dy = Math.round(y * a - (opt.mid ? f.h / 2 : f.h)) / a;
     if (opt.alpha !== undefined) { c.save(); c.globalAlpha = opt.alpha; }
     if (opt.flip) {
       c.save();
-      c.translate(dx + f.w, dy);
+      c.translate(dx + w, dy);
       c.scale(-1, 1);
-      c.drawImage(img, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+      c.drawImage(img, f.x, f.y, f.w, f.h, 0, 0, w, h);
       c.restore();
     } else {
-      c.drawImage(img, f.x, f.y, f.w, f.h, dx, dy, f.w, f.h);
+      c.drawImage(img, f.x, f.y, f.w, f.h, dx, dy, w, h);
     }
     if (opt.alpha !== undefined) c.restore();
   }
