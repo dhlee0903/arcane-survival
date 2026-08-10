@@ -1,6 +1,6 @@
 // 마법사 서바이벌 상수 — single source of truth.
 
-export const VERSION = 'v1.1';
+export const VERSION = 'v1.2';
 
 // 로직은 초당 60회 고정. 아래 값은 모두 "1스텝(1/60초)당" 기준이다.
 export const STEP_MS = 1000 / 60;
@@ -45,8 +45,10 @@ export const PLAYER = {
 // ---- 성장 ----
 // 레벨 n → n+1 에 필요한 경험치.
 // 초반은 성큼성큼 오르고(무기를 빨리 갖추게) 뒤로 갈수록 완만히 무거워진다.
+// 전 구간을 한 번에 낮추려면 아래 세 계수를 같이 줄인다(지금은 이전 대비 약 13% 감소).
 export function xpNeed(level) {
-  return 6 + (level - 1) * 5 + Math.floor((level - 1) ** 2 * 0.35);
+  const n = level - 1;
+  return Math.max(4, Math.round(5 + n * 4.4 + n * n * 0.30));
 }
 
 export const MAX_WEAPONS = 5;
