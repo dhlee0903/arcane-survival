@@ -9,7 +9,11 @@ import { WEAPONS } from './weapons.js';
 import { PASSIVES } from './upgrades.js';
 
 const TILE = 16;
-const SLOT = 15;      // HUD 아이템 칸 크기(아이콘 11 + 여백)
+const SLOT = 15;      // HUD 아이템 칸 크기
+// 흔한 것부터 — 앞쪽일수록 자주 나온다
+const GRASS = ['tile.grass0', 'tile.moss0', 'tile.grass1', 'tile.moss1'];
+// 흔한 것부터 — 앞쪽일수록 자주 나온다
+const DECOR = ['tuft', 'tuft', 'tuft', 'tuft', 'flower', 'rock', 'tuft', 'rock', 'mushroom', 'bones', 'stump', 'grave'];
 
 export class Renderer {
   constructor(canvas) {
@@ -112,12 +116,16 @@ export class Renderer {
       for (let tx = 0; tx < cols; tx += 1) {
         const wx = (left + tx) * TILE;
         const wy = (top + ty) * TILE;
-        // 흙은 2×2 덩어리로 뭉쳐야 길·맨땅처럼 보인다(칸마다 따로 뽑으면 얼룩이 된다)
+        // 땅은 두 겹으로 정한다.
+        //   1) 2×2 덩어리로 뭉친 흙 — 칸마다 따로 뽑으면 얼룩처럼 흩어진다
+        //   2) 나머지는 서로 비슷한 잔디 네 종을 칸마다 섞는다
+        // 넓은 "지대"로 묶어봤더니 색이 갈리는 자리에 사각형 경계가 그대로 드러났다.
+        // 비슷한 타일을 잘게 섞는 쪽이 결이 곱고 이음새도 안 보인다.
         const cxw = left + tx;
         const cyw = top + ty;
         const dirt = hash2(cxw >> 1, cyw >> 1) < 0.09;
         const h = hash2(cxw, cyw);
-        const name = dirt ? 'tile.path' : (h < 0.5 ? 'tile.grass0' : 'tile.grass1');
+        const name = dirt ? 'tile.path' : GRASS[Math.floor(h * GRASS.length)];
         const f = this.frames[name];
         c.drawImage(this.sheet, f.x, f.y, f.w, f.h, wx + this.ox, wy + this.oy, TILE, TILE);
       }
@@ -128,10 +136,10 @@ export class Renderer {
         const cxw = left + tx;
         const cyw = top + ty;
         const h = hash2(cxw * 7 + 13, cyw * 3 - 5);
-        if (h > 0.085) continue;
+        if (h > 0.105) continue;
         const wx = cxw * TILE + 8 + Math.floor(hash2(cxw, cyw + 99) * 6) - 3;
         const wy = cyw * TILE + 12 + Math.floor(hash2(cxw + 51, cyw) * 6) - 3;
-        const name = h < 0.05 ? 'tuft' : (h < 0.077 ? 'rock' : 'grave');
+        const name = DECOR[Math.min(DECOR.length - 1, Math.floor((h / 0.105) * DECOR.length))];
         this.blit(c, name, wx + this.ox, wy + this.oy);
       }
     }
@@ -208,10 +216,11 @@ export class Renderer {
     this.blit(c, g.anim.frame(), g.px + this.ox, g.py + this.oy + PLAYER.r + 2, { flip: face, tint: g.hurtCd > PLAYER.hurtCd - 6 });
   }
 
+  // 체력 막대는 머리 바로 위에 붙인다 — 멀리 띄우면 허공에 뜬 판때기처럼 보인다
   hpBar(c, e) {
-    const w = e.boss ? 34 : 20;
+    const w = e.boss ? 30 : 18;
     const x = Math.round(e.x + this.ox - w / 2);
-    const y = Math.round(e.y + this.oy - e.r - (e.boss ? 34 : 22));
+    const y = Math.round(e.y + this.oy - e.r - (e.boss ? 20 : 12));
     c.fillStyle = '#0b0718';
     c.fillRect(x - 1, y - 1, w + 2, 5);
     c.fillStyle = e.boss ? '#b06bff' : '#ffb03a';
