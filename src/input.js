@@ -2,7 +2,7 @@
 //   PC   : 방향키 / WASD, Esc·P 일시정지
 //   모바일: 화면 아무 데나 눌러 끌면 그 자리에 가상 스틱이 생긴다
 
-import { W, H } from './config.js';
+import { view } from './config.js';
 
 const KEYS = {
   ArrowLeft: [-1, 0], KeyA: [-1, 0],
@@ -74,12 +74,12 @@ export class InputController {
     canvas.addEventListener('pointercancel', end);
   }
 
-  // CSS 크기와 무관하게 논리 해상도(W×H) 좌표로 바꾼다 — 스틱도 그 좌표계에 그린다
+  // CSS 크기와 무관하게 논리 좌표(view)로 바꾼다 — 스틱도 그 좌표계에 그린다
   local(e) {
     const r = this.canvas.getBoundingClientRect();
     return {
-      x: ((e.clientX - r.left) / r.width) * W,
-      y: ((e.clientY - r.top) / r.height) * H,
+      x: ((e.clientX - r.left) / r.width) * view.w,
+      y: ((e.clientY - r.top) / r.height) * view.h,
     };
   }
 

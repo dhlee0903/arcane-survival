@@ -1,16 +1,33 @@
 // 마법사 서바이벌 상수 — single source of truth.
 
-export const VERSION = 'v1.0';
+export const VERSION = 'v1.1';
 
 // 로직은 초당 60회 고정. 아래 값은 모두 "1스텝(1/60초)당" 기준이다.
 export const STEP_MS = 1000 / 60;
 export const MAX_CATCHUP = 5;
 
-// 논리 해상도(캔버스는 CSS로 확대된다). 세로형.
-export const W = 320;
-export const H = 560;
+// ---- 화면 ----
+// 캔버스는 창을 꽉 채운다. 논리 해상도는 고정이 아니라 **창 크기 ÷ ZOOM**이다.
+//   · ZOOM이 클수록 도트가 크게 보이고 보이는 세상은 좁아진다.
+//   · 덕분에 세로 폰은 지금까지처럼 세로로 길고, PC는 가로로 넓은 화면이 된다.
+// view.w / view.h를 상수처럼 구조 분해해 두면 안 된다 — 창이 바뀌면 값도 바뀐다.
+export const view = { w: 320, h: 560, zoom: 2 };
 
-export const HUD_H = 34;
+// 작은 화면(폰)은 2배, 큰 화면(PC)은 3배로 키운다.
+// 3배에서 멈추는 이유: 더 키우면 보이는 세상이 좁아져 적이 코앞에서 튀어나온다.
+export function setView(cssW, cssH) {
+  view.zoom = Math.min(cssW, cssH) < 620 ? 2 : 3;
+  view.w = cssW / view.zoom;
+  view.h = cssH / view.zoom;
+  return view;
+}
+
+// 보이는 넓이 배율(기준 320×560 대비).
+// 화면이 좁아지면 같은 수의 적이 훨씬 빽빽해진다 — 소환량과 상한을 이 값으로 맞춰
+// 어떤 화면에서도 "화면당 적 밀도"가 같게 유지한다.
+export function areaScale() {
+  return (view.w * view.h) / (320 * 560);
+}
 
 // 한 판 길이. 이 시간을 버티면 ALL CLEAR.
 export const RUN_SEC = 900;           // 15분

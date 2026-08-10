@@ -2,29 +2,45 @@
 // 모든 그림은 시작할 때 구운 **스프라이트시트 한 장**에서 잘라 쓴다(this.sheet).
 // 카메라는 항상 마법사를 화면 한가운데 둔다.
 
-import { W, H, PLAYER, VERSION, GEM, RUN_SEC } from './config.js';
+import { view, setView, PLAYER, VERSION, GEM, RUN_SEC, MAX_WEAPONS, MAX_PASSIVES, MAX_LV } from './config.js';
 import { buildSheet, FONT } from './sprites.js';
 import { frameAt } from './anim.js';
 import { WEAPONS } from './weapons.js';
 import { PASSIVES } from './upgrades.js';
 
 const TILE = 16;
+const SLOT = 15;      // HUD 아이템 칸 크기(아이콘 11 + 여백)
 
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    this.ctx.scale(dpr, dpr);
-    this.ctx.imageSmoothingEnabled = false;
+    this.cssW = 0;
+    this.cssH = 0;
 
     const { canvas: sheet, tinted, frames } = buildSheet();
     this.sheet = sheet;
     this.tinted = tinted;
     this.frames = frames;
     this.showSheet = false;      // 디버그: 아틀라스를 화면에 띄운다
+    this.resize();
+  }
+
+  // 캔버스는 창을 꽉 채운다. 창이 바뀌면 백버퍼와 논리 해상도를 다시 잡는다.
+  // 도트가 커지는 건 여기 한 줄이 전부다 — 월드를 view.zoom배로 확대해 그린다.
+  resize() {
+    const cssW = this.canvas.clientWidth || 320;
+    const cssH = this.canvas.clientHeight || 560;
+    if (cssW === this.cssW && cssH === this.cssH) return;
+    this.cssW = cssW;
+    this.cssH = cssH;
+    setView(cssW, cssH);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.canvas.width = Math.round(cssW * dpr);
+    this.canvas.height = Math.round(cssH * dpr);
+    const s = dpr * view.zoom;
+    this.ctx.setTransform(s, 0, 0, s, 0, 0);
+    this.ctx.imageSmoothingEnabled = false;
   }
 
   // ---- 시트에서 한 장 잘라 그리기 ----
@@ -49,16 +65,17 @@ export class Renderer {
   }
 
   render(g) {
+    this.resize();
     const c = this.ctx;
     c.fillStyle = '#1a2418';
-    c.fillRect(0, 0, W, H);
+    c.fillRect(0, 0, view.w, view.h);
 
     // 화면 흔들림 — 월드만 밀고 HUD는 제자리
     const sx = g.shake > 0 ? Math.round(Math.sin(g.t * 2.7) * g.shake) : 0;
     const sy = g.shake > 0 ? Math.round(Math.cos(g.t * 3.9) * g.shake) : 0;
     // 카메라: 월드 좌표 + off = 화면 좌표
-    this.ox = Math.round(W / 2 - g.px) + sx;
-    this.oy = Math.round(H / 2 - g.py) + sy;
+    this.ox = Math.round(view.w / 2 - g.px) + sx;
+    this.oy = Math.round(view.h / 2 - g.py) + sy;
 
     this.ground(c, g);
     this.patches(c, g);
@@ -79,10 +96,10 @@ export class Renderer {
   // 타일 두 종과 흩뿌린 장식. 어떤 칸에 무엇이 놓이는지는 좌표 해시로 정한다 —
   // 저장할 필요 없이 어디로 가든 같은 풍경이 나온다.
   ground(c, g) {
-    const left = Math.floor((g.px - W / 2) / TILE) - 1;
-    const top = Math.floor((g.py - H / 2) / TILE) - 1;
-    const cols = Math.ceil(W / TILE) + 2;
-    const rows = Math.ceil(H / TILE) + 2;
+    const left = Math.floor((g.px - view.w / 2) / TILE) - 1;
+    const top = Math.floor((g.py - view.h / 2) / TILE) - 1;
+    const cols = Math.ceil(view.w / TILE) + 2;
+    const rows = Math.ceil(view.h / TILE) + 2;
 
     for (let ty = 0; ty < rows; ty += 1) {
       for (let tx = 0; tx < cols; tx += 1) {
@@ -248,56 +265,64 @@ export class Renderer {
   onScreen(x, y, m = 0) {
     const sx = x + this.ox;
     const sy = y + this.oy;
-    return sx > -m && sx < W + m && sy > -m && sy < H + m;
+    return sx > -m && sx < view.w + m && sy > -m && sy < view.h + m;
   }
 
   // ---- HUD ----
   hud(c, g) {
     // 경험치 막대 — 맨 위 한 줄
     c.fillStyle = '#0b0718';
-    c.fillRect(0, 0, W, 6);
+    c.fillRect(0, 0, view.w, 4);
     c.fillStyle = '#a371f7';
-    c.fillRect(0, 0, Math.round((g.xp / g.xpNext) * W), 5);
+    c.fillRect(0, 0, Math.round((g.xp / g.xpNext) * view.w), 3);
 
-    // 체력 — 오른쪽 위는 설정 버튼 자리라 왼쪽에 모아 둔다
-    const hw = 66;
-    c.fillStyle = '#0b0718';
-    c.fillRect(6, 9, hw + 2, 10);
-    c.fillStyle = g.hp / g.maxHp < 0.3 ? '#ff5a63' : '#3fce6a';
-    c.fillRect(7, 10, Math.max(0, Math.round((g.hp / g.maxHp) * hw)), 8);
-    this.text(c, `${Math.max(0, Math.ceil(g.hp))}/${Math.round(g.maxHp)}`, hw + 12, 11, '#9fb0c8', 1);
-
-    // 남은 시간 · 레벨 · 처치
+    // 남은 시간 — 가장 중요한 정보라 맨 위 가운데를 통째로 준다.
+    // 좁은 화면에서 체력·레벨과 겹치지 않도록 아래 줄부터 나머지를 깐다.
     const left = RUN_SEC - g.sec;
     const mm = String(Math.floor(Math.max(0, left) / 60)).padStart(2, '0');
     const ss = String(Math.max(0, left) % 60).padStart(2, '0');
-    this.text(c, `${mm}:${ss}`, W / 2 - 22, 9, '#ffffff', 2);
-    this.text(c, `LV ${g.level}`, 7, 22, '#ffd23f', 1);
-    this.text(c, `KILL ${g.kills}`, 43, 22, '#9fb0c8', 1);
+    this.text(c, `${mm}:${ss}`, Math.round(view.w / 2 - 30), 6, '#ffffff', 2);
+
+    // 체력 — 오른쪽 위는 설정 버튼 자리라 왼쪽에 모아 둔다
+    const hw = Math.round(Math.min(78, view.w * 0.34));
+    c.fillStyle = '#0b0718';
+    c.fillRect(4, 18, hw + 2, 8);
+    c.fillStyle = g.hp / g.maxHp < 0.3 ? '#ff5a63' : '#3fce6a';
+    c.fillRect(5, 19, Math.max(0, Math.round((g.hp / g.maxHp) * hw)), 6);
+    this.text(c, `${Math.max(0, Math.ceil(g.hp))}/${Math.round(g.maxHp)}`, hw + 10, 19, '#9fb0c8', 1);
+
+    this.text(c, `LV ${g.level}`, 5, 29, '#ffd23f', 1);
+    this.text(c, `KILL ${g.kills}`, 41, 29, '#9fb0c8', 1);
 
     this.slots(c, g);
-    this.text(c, VERSION, W - 26, H - 9, 'rgba(255,255,255,.35)', 1);
+    this.text(c, VERSION, view.w - 24, view.h - 8, 'rgba(255,255,255,.3)', 1);
   }
 
-  // 가진 무기·패시브를 왼쪽 아래에 줄지어 보여준다
+  // 가진 아이템 — 뱀서처럼 두 줄로 나눈다. 위가 공격, 아래가 패시브.
+  // 빈 칸도 그려서 앞으로 몇 개를 더 들 수 있는지 보이게 한다.
   slots(c, g) {
-    let x = 7;
-    const y = H - 15;
-    for (const id of Object.keys(g.weapons)) {
-      c.fillStyle = 'rgba(11,7,24,.72)';
-      c.fillRect(x - 1, y - 11, 13, 13);
-      this.blit(c, WEAPONS[id].icon, x + 5, y - 4, { mid: true });
-      this.text(c, String(g.weapons[id]), x + 3, y + 3, '#ffd23f', 1);
-      x += 16;
-    }
-    x = 7;
-    for (const id of Object.keys(g.passives)) {
-      c.fillStyle = 'rgba(11,7,24,.72)';
-      c.fillRect(x - 1, y - 26, 13, 13);
-      c.fillStyle = PASSIVES[id].color;
-      c.fillRect(x + 2, y - 23, 7, 7);
-      this.text(c, String(g.passives[id]), x + 3, y - 12, '#9fb0c8', 1);
-      x += 16;
+    const weapons = Object.keys(g.weapons).map((id) => ({ icon: WEAPONS[id].icon, lv: g.weapons[id] }));
+    const passives = Object.keys(g.passives).map((id) => ({ icon: PASSIVES[id].icon, lv: g.passives[id] }));
+    const y = view.h - SLOT * 2 - 6;
+    this.slotRow(c, y, MAX_WEAPONS, weapons, '#7ff0ff');
+    this.slotRow(c, y + SLOT + 1, MAX_PASSIVES, passives, '#ffb03a');
+  }
+
+  slotRow(c, y, cap, items, tone) {
+    for (let i = 0; i < cap; i += 1) {
+      const x = 4 + i * (SLOT + 1);
+      const it = items[i];
+      c.fillStyle = it ? 'rgba(11,7,24,.8)' : 'rgba(11,7,24,.35)';
+      c.fillRect(x, y, SLOT, SLOT);
+      c.strokeStyle = it ? tone : 'rgba(255,255,255,.12)';
+      c.lineWidth = 1;
+      c.strokeRect(x + 0.5, y + 0.5, SLOT - 1, SLOT - 1);
+      if (!it) continue;
+      this.blit(c, it.icon, x + SLOT / 2, y + SLOT / 2, { mid: true });
+      // 레벨은 오른쪽 아래 구석에. 그림 위에 얹히므로 바탕을 깔아 읽히게 한다.
+      c.fillStyle = 'rgba(11,7,24,.85)';
+      c.fillRect(x + SLOT - 6, y + SLOT - 8, 6, 8);
+      this.text(c, String(it.lv), x + SLOT - 5, y + SLOT - 7, it.lv >= MAX_LV ? '#ffd23f' : '#cfc6f5', 1);
     }
   }
 
@@ -321,7 +346,7 @@ export class Renderer {
   sheetOverlay(c) {
     const s = 2;
     c.fillStyle = 'rgba(6,4,14,.92)';
-    c.fillRect(0, 0, W, H);
+    c.fillRect(0, 0, view.w, view.h);
     c.drawImage(this.sheet, 0, 0, this.sheet.width, this.sheet.height,
       4, 20, this.sheet.width * s, this.sheet.height * s);
     this.text(c, `SHEET ${this.sheet.width}X${this.sheet.height}`, 6, 8, '#7ff0ff', 1);
