@@ -16,6 +16,7 @@ const cardsEl = $('cards');
 const pauseEl = $('pause');
 const gearBtn = $('gear');
 const bannerEl = $('banner');
+const repoLink = $('repo');
 
 const game = new Game({ onState: handleState });
 
@@ -42,7 +43,8 @@ function showOverlay(title, html, btn) {
   $('ovBtn').onclick = () => { overlay.classList.remove('show'); game.start(); };
 }
 
-// 레벨업 — 카드 세 장. 무기 카드에는 실제 스프라이트를 시트에서 잘라 그려 넣는다.
+// 레벨업 — 카드 세 장. 아이콘은 실제 스프라이트시트에서 잘라 그려 넣는다.
+// 카드마다 갈래(공격 / 패시브)를 함께 찍어 뭘 고르는지 바로 보이게 한다.
 function showCards(choices, level) {
   cardsEl.innerHTML = '';
   choices.forEach((c, i) => {
@@ -52,12 +54,11 @@ function showCards(choices, level) {
     el.innerHTML = `
       <span class="ic"></span>
       <span class="body">
+        <span class="grp">${c.group}</span>
         <span class="nm">${c.name}<span class="tag">${c.tag}</span></span>
         <span class="ln">${c.line}</span>
       </span>`;
-    const ic = el.querySelector('.ic');
-    if (c.icon) ic.appendChild(iconCanvas(c.icon));
-    else { ic.classList.add('dot'); ic.style.background = c.color; }
+    el.querySelector('.ic').appendChild(iconCanvas(c.icon));
     el.onclick = () => game.choose(i);
     cardsEl.appendChild(el);
   });
@@ -67,7 +68,7 @@ function showCards(choices, level) {
 
 function iconCanvas(name) {
   const f = renderer.frames[name];
-  const s = 2;
+  const s = 3;
   const cv = document.createElement('canvas');
   cv.width = f.w * s;
   cv.height = f.h * s;
@@ -99,7 +100,9 @@ let prev = 0;
 function syncChrome() {
   const playing = game.phase === 'playing' && !game.paused;
   pauseEl.classList.toggle('show', game.paused);
+  // 설정 버튼과 GitHub 링크는 같은 자리(오른쪽 위)를 쓴다 — 번갈아 보인다
   gearBtn.hidden = !playing;
+  repoLink.hidden = playing;
   if (game.bannerT > 0) {
     bannerEl.textContent = game.bannerText;
     bannerEl.classList.add('show');
