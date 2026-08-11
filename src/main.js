@@ -26,7 +26,7 @@ const game = new Game({ onState: handleState });
 // eslint-disable-next-line no-new
 new InputController($('board'), game);
 
-// 일시정지 화면에 진화 조합식을 깔아 둔다 — 안 보여주면 알 방법이 없다
+// 일시정지 화면에 대체 스킬 조합식을 깔아 둔다 — 안 보여주면 알 방법이 없다
 function fillRecipes() {
   const box = $('recipes');
   if (box.childElementCount) return;
@@ -63,7 +63,7 @@ function showOverlay(title, html, btn) {
 }
 
 // 레벨업 — 카드 세 장. 아이콘은 실제 스프라이트시트에서 잘라 그려 넣는다.
-// 카드마다 갈래(공격 / 패시브)를 함께 찍어 뭘 고르는지 바로 보이게 한다.
+// 카드마다 갈래(스킬 / 아이템)를 함께 찍어 뭘 고르는지 바로 보이게 한다.
 function showCards(choices, level) {
   cardsEl.innerHTML = '';
   choices.forEach((c, i) => {
@@ -174,7 +174,7 @@ requestAnimationFrame(loop);
 // 타이틀
 const best = getBest();
 showOverlay(
-  '<span class="title">아케인 서바이벌</span><span class="sub">ARCANE SURVIVAL</span>',
+  '<span class="title">먼 곳의 횃대</span><span class="sub">DISTANT ROOST · COMMANDO</span>',
   `이동만 하면 된다 · 공격은 자동<br>${RUN_SEC / 60}분을 버티면 승리`
   + `<br><span class="dim">PC: 방향키 · WASD / 모바일: 화면을 끌어서</span>`
   + (best ? `<br><span class="dim">최고 생존 ${mmss(best)}</span>` : '')

@@ -1,10 +1,10 @@
-// 공격 아이템(무기) — 뱀파이어 서바이벌처럼 **자동으로** 나간다.
+// 코만도의 스킬 — 조준 버튼 없이 **자동으로** 나간다.
 // 조준도 발사도 플레이어가 하지 않는다.
 // 무기마다 레벨 1~6의 수치표를 갖고, fire()에서 게임의 배열에 투사체·장판을 밀어 넣는다.
 //
-// 패시브 보정(mods)은 여기서 한 번에 먹인다.
-//   dmg  = 표 값 × mods.might
-//   cd   = 표 값 × mods.focus   (짧을수록 자주 나간다)
+// 아이템 보정(mods)은 여기서 한 번에 먹인다.
+//   dmg  = 표 값 × mods.dmg
+//   cd   = 표 값 × mods.cd    (짧을수록 자주 나간다)
 //   rad  = 표 값 × mods.area
 
 import { MAX_LV, view } from './config.js';
@@ -23,11 +23,11 @@ function table(rows) {
 }
 
 export const WEAPONS = {
-  bolt: {
-    name: '마력 화살',
-    icon: 'item.bolt',
-    evo: { into: 'starfall', needs: 'might' },
-    desc: '가장 가까운 적에게 마력 덩어리를 쏜다',
+  tap: {
+    name: '더블 탭',
+    icon: 'skill.tap',
+    evo: { into: 'crowdfunder', needs: 'crowbar' },
+    desc: '가장 가까운 적에게 권총을 쏜다 · 코만도의 기본기',
     up: [
       '투사체 2개',
       '재사용 대기 감소 · 피해 증가',
@@ -53,17 +53,17 @@ export const WEAPONS = {
         const jitter = targets.length ? 0 : (i - (s.count - 1) / 2) * 0.18;
         g.addProjectile({
           x: g.px, y: g.py - 8, a: a + jitter, speed: s.speed,
-          dmg: s.dmg, pierce: s.pierce, r: s.r, clip: 'bolt', life: 150,
+          dmg: s.dmg, pierce: s.pierce, r: s.r, clip: 'bullet', life: 150,
         });
       }
     },
   },
 
-  shard: {
-    name: '서리 파편',
-    icon: 'item.shard',
-    evo: { into: 'blizzard', needs: 'focus' },
-    desc: '바라보는 방향으로 파편을 던진다 · 적을 뚫는다',
+  phase: {
+    name: '페이즈 라운드',
+    icon: 'skill.phase',
+    evo: { into: 'phaseBlast', needs: 'syringe' },
+    desc: '바라보는 방향으로 관통탄을 쏜다 · 줄지어 선 적을 한 번에',
     up: [
       '파편 2개',
       '재사용 대기 감소 · 피해 증가',
@@ -86,18 +86,18 @@ export const WEAPONS = {
         const off = (i - (s.count - 1) / 2) * 7;
         g.addProjectile({
           x: g.px, y: g.py - 8 + off, a, speed: s.speed,
-          dmg: s.dmg, pierce: s.pierce, r: s.r, clip: null, spr: 'shard',
+          dmg: s.dmg, pierce: s.pierce, r: s.r, clip: null, spr: 'phase',
           flip: g.faceX < 0, life: 90,
         });
       }
     },
   },
 
-  rune: {
-    name: '수호 룬',
-    icon: 'item.rune',
-    evo: { into: 'sanctum', needs: 'area' },
-    desc: '몸 주위를 도는 룬 · 닿은 적에게 피해',
+  drone: {
+    name: '공격 드론',
+    icon: 'skill.drone',
+    evo: { into: 'gauss', needs: 'gasoline' },
+    desc: '곁을 돌며 닿은 적을 때린다',
     up: ['룬 2개', '룬 3개', '피해 · 범위 증가', '룬 4개', '룬 5개 · 회전 가속'],
     lv: table([
       { n: 1, dmg: 12, rad: 34, spin: 0.055 },
@@ -111,11 +111,11 @@ export const WEAPONS = {
     passive: true,
   },
 
-  aura: {
-    name: '화염 오라',
-    icon: 'item.aura',
-    evo: { into: 'inferno', needs: 'vigor' },
-    desc: '몸 주위를 태운다 · 적을 밀어낸다',
+  flame: {
+    name: '화염 방사기',
+    icon: 'skill.flame',
+    evo: { into: 'willowisp', needs: 'infusion' },
+    desc: '주위를 태우고 밀어낸다',
     up: ['범위 · 피해 증가', '범위 · 피해 증가', '주기 단축', '범위 · 피해 증가', '범위 대폭 증가'],
     lv: table([
       { rad: 30, dmg: 5, cd: 48 },
@@ -141,11 +141,11 @@ export const WEAPONS = {
     },
   },
 
-  zap: {
-    name: '연쇄 번개',
-    icon: 'item.zap',
-    evo: { into: 'judgement', needs: 'wisdom' },
-    desc: '화면 안의 적에게 번개를 떨어뜨린다',
+  uke: {
+    name: '우쿨렐레',
+    icon: 'skill.uke',
+    evo: { into: 'perforator', needs: 'glasses' },
+    desc: '화면 안의 적에게 번개가 튄다',
     up: ['번개 2줄기', '번개 3줄기', '번개 4줄기', '번개 5줄기', '번개 7줄기 · 대기 단축'],
     lv: table([
       { n: 1, cd: 170, dmg: 24, splash: 16 },
@@ -165,11 +165,11 @@ export const WEAPONS = {
     },
   },
 
-  brand: {
-    name: '불의 낙인',
-    icon: 'item.brand',
-    evo: { into: 'ashtrail', needs: 'swift' },
-    desc: '발밑에 불을 남긴다 · 지나가는 적이 탄다',
+  frag: {
+    name: '파편 수류탄',
+    icon: 'skill.frag',
+    evo: { into: 'incendiary', needs: 'hoof' },
+    desc: '발밑에 굴려 터뜨린다 · 불바다가 남는다',
     up: ['지속 증가', '낙인 2개', '범위 · 피해 증가', '낙인 3개', '범위 대폭 증가'],
     lv: table([
       { n: 1, cd: 210, rad: 26, dmg: 5, life: 200 },
@@ -193,25 +193,26 @@ export const WEAPONS = {
   },
 };
 
-// ---- 진화 무기 ----
-// 뱀서 방식: 무기를 만렙까지 올리고 지정된 패시브를 갖춘 상태에서 **상자를 열면** 진화한다.
+// ---- 대체 스킬 ----
+// 원작의 대체 스킬을 이 판의 규칙으로 옮겼다. 스킬을 만렙까지 올리고 지정된 아이템을
+// 갖춘 상태에서 **상자를 열면** 대체 스킬로 바뀐다.
 // 카드 풀에는 절대 오르지 않는다(evolved 플래그).
 const EVOLVED = {
-  starfall: {
-    name: '별의 파편',
-    icon: 'item.bolt',
+  crowdfunder: {
+    name: '크라우드펀더',
+    icon: 'skill.tap',
     evolved: true,
-    from: 'bolt',
-    desc: '여섯 갈래 별빛이 가장 가까운 적들을 꿰뚫는다',
+    from: 'tap',
+    desc: '돈을 쏟아붓듯 여섯 발을 한꺼번에 · 관통',
     lv: table([{ count: 6, cd: 26, dmg: 34, pierce: 2, speed: 5.2, r: 6 }]),
-    fire: (g, st) => WEAPONS.bolt.fire(g, st),
+    fire: (g, st) => WEAPONS.tap.fire(g, st),
   },
-  blizzard: {
-    name: '눈보라',
-    icon: 'item.shard',
+  phaseBlast: {
+    name: '페이즈 블래스트',
+    icon: 'skill.phase',
     evolved: true,
-    from: 'shard',
-    desc: '앞뒤로 파편을 흩뿌린다 · 관통 5',
+    from: 'phase',
+    desc: '앞뒤로 산탄을 흩뿌린다 · 관통 5',
     lv: table([{ count: 8, cd: 22, dmg: 22, pierce: 5, speed: 7, r: 6 }]),
     fire(g, s) {
       // 앞뒤 양쪽으로 부채꼴
@@ -221,44 +222,44 @@ const EVOLVED = {
         const off = (Math.floor(i / 2) - (s.count / 2 - 1) / 2) * 9;
         g.addProjectile({
           x: g.px, y: g.py - 8 + off, a, speed: s.speed,
-          dmg: s.dmg, pierce: s.pierce, r: s.r, clip: null, spr: 'shard',
+          dmg: s.dmg, pierce: s.pierce, r: s.r, clip: null, spr: 'phase',
           flip: a !== 0, life: 100,
         });
       }
     },
   },
-  sanctum: {
-    name: '성역',
-    icon: 'item.rune',
+  gauss: {
+    name: 'TR12 가우스 오토 드론',
+    icon: 'skill.drone',
     evolved: true,
-    from: 'rune',
-    desc: '일곱 룬이 넓게 공전하며 접근을 막는다',
+    from: 'drone',
+    desc: '드론 일곱 기가 넓게 돌며 접근을 막는다',
     lv: table([{ n: 7, dmg: 46, rad: 62, spin: 0.1 }]),
     passive: true,
   },
-  inferno: {
-    name: '지옥불',
-    icon: 'item.aura',
+  willowisp: {
+    name: '불의 목격자',
+    icon: 'skill.flame',
     evolved: true,
-    from: 'aura',
+    from: 'flame',
     desc: '몸 주위가 불바다가 된다 · 강한 넉백',
     lv: table([{ rad: 86, dmg: 26, cd: 24 }]),
-    fire: (g, st) => WEAPONS.aura.fire(g, st),
+    fire: (g, st) => WEAPONS.flame.fire(g, st),
   },
-  judgement: {
-    name: '천벌',
-    icon: 'item.zap',
+  perforator: {
+    name: '충전된 천공기',
+    icon: 'skill.uke',
     evolved: true,
-    from: 'zap',
-    desc: '열 줄기 번개가 한꺼번에 떨어진다',
+    from: 'uke',
+    desc: '열 줄기 낙뢰가 한꺼번에 떨어진다',
     lv: table([{ n: 10, cd: 80, dmg: 72, splash: 30 }]),
-    fire: (g, st) => WEAPONS.zap.fire(g, st),
+    fire: (g, st) => WEAPONS.uke.fire(g, st),
   },
-  ashtrail: {
-    name: '잿길',
-    icon: 'item.brand',
+  incendiary: {
+    name: '소이 수류탄',
+    icon: 'skill.frag',
     evolved: true,
-    from: 'brand',
+    from: 'frag',
     desc: '지나간 자리마다 불이 남는다',
     lv: table([{ n: 1, cd: 24, rad: 26, dmg: 12, life: 150 }]),
     fire(g, s) {
@@ -272,7 +273,7 @@ Object.assign(WEAPONS, EVOLVED);
 export const WEAPON_IDS = Object.keys(WEAPONS).filter((id) => !WEAPONS[id].evolved);
 export const EVOLVED_IDS = Object.keys(EVOLVED);
 
-// 어떤 무기가 지금 진화할 수 있는지 — 만렙 + 필요한 패시브 보유
+// 어떤 스킬이 지금 바뀔 수 있는지 — 만렙 + 필요한 아이템 보유
 export function evolvableWeapon(weapons, passives, maxLv) {
   for (const id of Object.keys(weapons)) {
     const def = WEAPONS[id];
@@ -301,8 +302,8 @@ export function evoRecipes() {
 export function statsOf(id, level, mods) {
   const base = WEAPONS[id].lv[Math.min(level, MAX_LV) - 1];
   const s = { ...base };
-  if (s.dmg) s.dmg = Math.max(1, Math.round(s.dmg * mods.might));
-  if (s.cd) s.cd = Math.max(6, Math.round(s.cd * mods.focus));
+  if (s.dmg) s.dmg = Math.max(1, Math.round(s.dmg * mods.dmg));
+  if (s.cd) s.cd = Math.max(6, Math.round(s.cd * mods.cd));
   if (s.rad) s.rad = Math.round(s.rad * mods.area);
   if (s.splash) s.splash = Math.round(s.splash * mods.area);
   return s;

@@ -34,7 +34,7 @@ export function attachDebug({ game, renderer, clock }) {
     <div class="dbg-row">
       <button data-act="levelup">레벨업</button>
       <button data-act="maxweapons">무기 만렙</button>
-      <button data-act="maxpassives">패시브 만렙</button>
+      <button data-act="maxpassives">아이템 만렙</button>
     </div>
     <div class="dbg-row">
       <button data-act="boss">보스</button>
@@ -101,12 +101,12 @@ export function attachDebug({ game, renderer, clock }) {
       case 'maxpassives':
         for (const id of PASSIVE_IDS.slice(0, 5)) for (let i = 0; i < MAX_LV; i += 1) game.grantPassive(id);
         break;
-      case 'boss': game.spawn('lich', game.spawner.edgePoint(game)); break;
-      case 'elite': game.spawn('golem', game.spawner.edgePoint(game)); break;
+      case 'boss': game.spawn('titan', game.spawner.edgePoint(game)); break;
+      case 'elite': game.spawn('guard', game.spawner.edgePoint(game)); break;
       case 'swarm':
         for (let i = 0; i < 40; i += 1) {
           const a = (i / 40) * Math.PI * 2;
-          const kind = ['bat', 'slime', 'skeleton', 'ghost'][i % 4];
+          const kind = ['wisp', 'jellyfish', 'lemurian', 'beetle'][i % 4];
           g_spawnAt(game, kind, a);
         }
         break;
@@ -141,7 +141,7 @@ export function attachDebug({ game, renderer, clock }) {
       stat.textContent = [
         `fps ${pad(clock.fps, 3)}   frame ${pad(clock.ms.toFixed(1), 5)}ms   step ${pad(clock.step.toFixed(2), 5)}ms`,
         `time ${pad(g.sec, 3)}s / ${RUN_SEC}s   phase ${g.phase}${g.paused ? ' (일시정지)' : ''}`,
-        `view ${Math.round(view.w)}x${Math.round(view.h)}  zoom ${view.zoom}  area ${areaScale().toFixed(2)}`,
+        `view ${Math.round(view.w)}x${Math.round(view.h)}  zoom ${view.zoom}  gasoline ${areaScale().toFixed(2)}`,
         '',
         `hp ${Math.ceil(g.hp)}/${Math.round(g.maxHp)}   lv ${g.level}   xp ${g.xp}/${g.xpNext}   kill ${g.kills}`,
         `pos ${Math.round(g.px)}, ${Math.round(g.py)}`,
@@ -150,8 +150,8 @@ export function attachDebug({ game, renderer, clock }) {
         `part  ${pad(g.parts.length, 4)}  drop ${pad(g.drops.length, 4)}  fire ${pad(g.patches.length, 3)}`,
         '',
         `무기   ${fmtItems(g.weapons)}`,
-        `패시브 ${fmtItems(g.passives)}`,
-        `보정   공${m.might.toFixed(2)} 속${m.speed.toFixed(2)} 쿨${m.focus.toFixed(2)} 범${m.area.toFixed(2)}`,
+        `아이템 ${fmtItems(g.passives)}`,
+        `보정   공${m.dmg.toFixed(2)} 속${m.speed.toFixed(2)} 쿨${m.cd.toFixed(2)} 범${m.area.toFixed(2)} 치${(m.crit * 100).toFixed(0)}%`,
       ].join('\n');
     },
   };

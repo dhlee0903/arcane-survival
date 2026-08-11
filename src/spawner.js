@@ -8,33 +8,34 @@ import { view, areaScale, MAX_ENEMIES } from './config.js';
 const S = (sec) => sec * 60;   // 초 → 스텝
 
 export const PHASES = [
-  { at: S(0), kinds: [['bat', 1]], every: 46, burst: 1 },
-  { at: S(40), kinds: [['bat', 4], ['slime', 1]], every: 36, burst: 1 },
-  { at: S(90), kinds: [['bat', 3], ['slime', 3]], every: 30, burst: 2 },
-  { at: S(150), kinds: [['bat', 3], ['slime', 3], ['skeleton', 2]], every: 26, burst: 2 },
-  { at: S(230), kinds: [['bat', 2], ['slime', 3], ['skeleton', 4]], every: 24, burst: 2 },
-  { at: S(330), kinds: [['bat', 2], ['slime', 2], ['skeleton', 4], ['ghost', 2]], every: 22, burst: 3 },
-  { at: S(430), kinds: [['slime', 2], ['skeleton', 4], ['ghost', 4]], every: 20, burst: 3 },
-  { at: S(540), kinds: [['bat', 3], ['skeleton', 3], ['ghost', 5]], every: 18, burst: 3 },
-  { at: S(660), kinds: [['bat', 4], ['skeleton', 4], ['ghost', 5]], every: 16, burst: 4 },
-  { at: S(780), kinds: [['bat', 5], ['skeleton', 4], ['ghost', 6]], every: 14, burst: 4 },
+  { at: S(0), kinds: [['lemurian', 1]], every: 46, burst: 1 },
+  { at: S(40), kinds: [['lemurian', 4], ['wisp', 2]], every: 36, burst: 1 },
+  { at: S(90), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 2]], every: 30, burst: 2 },
+  { at: S(150), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 3]], every: 26, burst: 2 },
+  { at: S(230), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 3], ['beetle', 2]], every: 24, burst: 2 },
+  { at: S(330), kinds: [['lemurian', 3], ['wisp', 2], ['jellyfish', 3], ['beetle', 3]], every: 22, burst: 3 },
+  { at: S(430), kinds: [['lemurian', 3], ['jellyfish', 3], ['beetle', 4]], every: 20, burst: 3 },
+  { at: S(540), kinds: [['lemurian', 3], ['wisp', 3], ['beetle', 5]], every: 18, burst: 3 },
+  { at: S(660), kinds: [['lemurian', 4], ['jellyfish', 4], ['beetle', 5]], every: 16, burst: 4 },
+  { at: S(780), kinds: [['lemurian', 4], ['wisp', 4], ['jellyfish', 4], ['beetle', 6]], every: 14, burst: 4 },
 ];
 
+// 정해진 시각에 한 번만 터지는 사건. 포위(ring) · 무리(line) · 엘리트 · 보스.
 export const EVENTS = [
-  { at: S(75), type: 'ring', kind: 'bat', n: 18 },
-  { at: S(140), type: 'line', kind: 'slime', n: 14 },
-  { at: S(200), type: 'elite', kind: 'golem', n: 1 },
-  { at: S(260), type: 'ring', kind: 'skeleton', n: 22 },
-  { at: S(300), type: 'boss', kind: 'lich' },
-  { at: S(380), type: 'elite', kind: 'golem', n: 2 },
-  { at: S(440), type: 'line', kind: 'ghost', n: 16 },
-  { at: S(500), type: 'ring', kind: 'skeleton', n: 26 },
-  { at: S(560), type: 'elite', kind: 'golem', n: 2 },
-  { at: S(600), type: 'boss', kind: 'lich' },
-  { at: S(680), type: 'ring', kind: 'ghost', n: 24 },
-  { at: S(740), type: 'elite', kind: 'golem', n: 3 },
-  { at: S(800), type: 'line', kind: 'skeleton', n: 24 },
-  { at: S(860), type: 'boss', kind: 'lich' },
+  { at: S(75), type: 'ring', kind: 'wisp', n: 18 },
+  { at: S(140), type: 'line', kind: 'jellyfish', n: 14 },
+  { at: S(200), type: 'elite', kind: 'guard', n: 1 },
+  { at: S(260), type: 'ring', kind: 'lemurian', n: 22 },
+  { at: S(300), type: 'boss', kind: 'titan' },
+  { at: S(380), type: 'elite', kind: 'guard', n: 2 },
+  { at: S(440), type: 'line', kind: 'beetle', n: 16 },
+  { at: S(500), type: 'ring', kind: 'lemurian', n: 26 },
+  { at: S(560), type: 'elite', kind: 'guard', n: 2 },
+  { at: S(600), type: 'boss', kind: 'titan' },
+  { at: S(680), type: 'ring', kind: 'beetle', n: 24 },
+  { at: S(740), type: 'elite', kind: 'guard', n: 3 },
+  { at: S(800), type: 'line', kind: 'lemurian', n: 24 },
+  { at: S(860), type: 'boss', kind: 'titan' },
 ];
 
 export class Spawner {

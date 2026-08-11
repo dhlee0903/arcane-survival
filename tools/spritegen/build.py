@@ -71,61 +71,61 @@ for name, pal in gen.PAL.items():
         line = f'  {name}: {{\n    {a},\n    {b},\n  }},\n'
     buf.write(line)
 buf.write('};\n\n')
-# 마법사 — 서 있는 자세와 두 걸음. 여섯 프레임이 이 셋을 나눠 쓴다
-buf.write('// ---- 마법사 ----\n')
+# 코만도 — 서 있는 자세와 두 걸음. 여섯 프레임이 이 셋을 나눠 쓴다
+buf.write('// ---- 코만도(주인공) ----\n')
 buf.write('// 서 있는 자세 하나와 걸음 둘. lift를 번갈아 주면 걷는 동안 몸이 통통 튄다.\n')
-buf.write('const WIZ = {\n')
+buf.write('const HERO = {\n')
 for pose in ('stand', 'stepA', 'stepB'):
     buf.write(f"  {pose}: [\n")
-    for r in gen.SPR[f'wizard.{pose}'][1]():
+    for r in gen.SPR[f'commando.{pose}'][1]():
         buf.write(f"    '{r}',\n")
     buf.write('  ],\n')
 buf.write('};\n\n')
-buf.write("const wiz = (pose, lift) => ({ pal: 'wizard', art: 2, lift, rows: WIZ[pose] });\n")
+buf.write("const hero = (pose, lift) => ({ pal: 'commando', art: 2, lift, rows: HERO[pose] });\n")
 
 # ---- MAPS ----
 ORDER = [
-    ('// ---- 적 ----', ['bat.0', 'bat.1', 'slime.0', 'slime.1', 'skeleton.0', 'skeleton.1',
-                        'ghost.0', 'ghost.1', 'golem.0', 'golem.1', 'lich.0', 'lich.1']),
+    ('// ---- 몬스터 ----', ['lemurian.0', 'lemurian.1', 'wisp.0', 'wisp.1',
+                          'jellyfish.0', 'jellyfish.1', 'beetle.0', 'beetle.1',
+                          'guard.0', 'guard.1', 'titan.0', 'titan.1']),
     ('// ---- 주워 먹는 것 ----', ['gem.blue', 'gem.green', 'gem.red', 'heart', 'magnet', 'coin']),
-    ('// ---- 부술 수 있는 물건 ----', ['chest', 'pot']),
+    ('// ---- 부술 수 있는 물건 ----', ['chest', 'barrel']),
     ('// ---- 배경 장식 ----', ['rock', 'tuft', 'mushroom', 'flower', 'bones', 'stump', 'grave']),
     ('// ---- 바닥 타일 ----', ['tile.grass0', 'tile.grass1', 'tile.moss0', 'tile.moss1', 'tile.path']),
-    ('// ---- 투사체 ----', ['bolt.0', 'bolt.1', 'shard', 'rune.0', 'rune.1',
+    ('// ---- 투사체 ----', ['bullet.0', 'bullet.1', 'phase', 'drone.0', 'drone.1',
                           'flame.0', 'flame.1', 'flame.2', 'zap.0', 'zap.1']),
-    ('// ---- 아이템 아이콘 ----', ['item.bolt', 'item.shard', 'item.rune', 'item.aura', 'item.zap',
-                              'item.brand', 'item.might', 'item.swift', 'item.vigor',
-                              'item.regen', 'item.focus', 'item.area', 'item.wisdom']),
+    ('// ---- 스킬 · 아이템 아이콘 ----',
+     ['skill.tap', 'skill.phase', 'skill.drone', 'skill.flame', 'skill.uke', 'skill.frag',
+      'item.crowbar', 'item.hoof', 'item.infusion', 'item.syringe', 'item.gasoline',
+      'item.scanner', 'item.glasses', 'item.medkit']),
 ]
-LIFT = {'bat.0': 1, 'bat.1': 0, 'skeleton.0': 0, 'skeleton.1': 1, 'ghost.0': 0, 'ghost.1': 1,
-        'golem.0': 0, 'golem.1': 1, 'lich.0': 0, 'lich.1': 1}
+LIFT = {'wisp.0': 1, 'wisp.1': 0, 'jellyfish.0': 1, 'jellyfish.1': 0,
+        'lemurian.0': 0, 'lemurian.1': 1, 'beetle.0': 0, 'beetle.1': 1,
+        'guard.0': 0, 'guard.1': 1, 'titan.0': 0, 'titan.1': 1}
 NOTE = {
-    'bat.0': '  // 박쥐 — 날개를 올린 프레임과 내린 프레임',
-    'slime.0': '  // 슬라임 — 통통 튈 때 몸이 눌린다',
-    'skeleton.0': '  // 해골 — 다리가 번갈아 나간다',
-    'ghost.0': '  // 유령 — 자락의 물결이 프레임마다 어긋난다',
-    'golem.0': '  // 골렘(엘리트) — 이끼 낀 바위 덩어리. 가슴의 균열에서 용암이 샌다',
-    'lich.0': '  // 리치(보스) — 왕관 쓴 해골. 가슴의 마력 핵이 프레임마다 부푼다',
-    'gem.blue': '  // 경험치 보석 — 같은 형태에 팔레트만 갈아 끼운다',
+    'lemurian.0': '  // 레무리안 — 이 판의 기본 적. 두 발로 서는 작은 도마뱀',
+    'wisp.0': '  // 레서 위습 — 쇠 테 안에서 타는 불꽃. 떠다닌다',
+    'jellyfish.0': '  // 해파리 — 둥실 떠다니다 몸을 부풀려 터진다',
+    'beetle.0': '  // 비틀 — 등껍질을 이고 달려든다',
+    'guard.0': '  // 비틀 가드(엘리트) — 어깨에 갑판을 얹은 큰 벌레',
+    'titan.0': '  // 스톤 타이탄(보스) — 먼 곳의 횃대를 지키는 바위 거인',
+    'gem.blue': '  // 경험치 결정 — 같은 형태에 팔레트만 갈아 끼운다',
     'chest': '  // 상자 — 엘리트와 보스가 떨군다',
-    'pot': '  // 항아리 — 부수면 금화 · 회복 · 자석이 나온다',
-    'tile.grass0': '  // 잡티를 칸마다 흩뿌리면 노이즈로 보인다. 덩어리로 뭉치고 결을 넣어야 풀밭이 된다.\n'
+    'barrel': '  // 배럴 — 부수면 금화 · 회복 · 자석이 나온다',
+    'tile.grass0': '  // 잡티를 칸마다 흩뿌리면 노이즈로 보인다. 덩어리로 뭉치고 결을 넣어야 땅이 된다.\n'
                    '  // 가장자리는 기본색만 남겨 이웃 타일과의 이음새를 감춘다.',
-    'bolt.0': '  // 마력 화살 — 어느 방향으로 날아가도 같게 보이도록 둥근 핵으로 그렸다',
-    'item.bolt': '  // HUD 칸(11도트)에 맞춰 규격을 통일한다. flat이라 아랫줄을 더 두지 않는다.',
+    'bullet.0': '  // 더블 탭 탄 — 어느 방향으로 날아가도 같게 보이도록 둥글게 그렸다',
+    'skill.tap': '  // HUD 칸(11도트)에 맞춰 규격을 통일한다. flat이라 아랫줄을 더 두지 않는다.',
 }
 
 buf.write('\n// ---- 프레임 목록 ----\n')
 buf.write('// name → { pal, rows, art?, lift?, flat? }\n')
 buf.write('export const MAPS = {\n')
-buf.write("  'wizard.idle0': wiz('stand', 0),\n")
-buf.write("  'wizard.idle1': wiz('stand', 1),\n")
-buf.write("  'wizard.walk0': wiz('stepA', 1),\n")
-buf.write("  'wizard.walk1': wiz('stand', 0),\n")
-buf.write("  'wizard.walk2': wiz('stepB', 1),\n")
-buf.write("  'wizard.walk3': wiz('stand', 0),\n")
+for _n, _pose, _lift in (('idle0', 'stand', 0), ('idle1', 'stand', 1), ('walk0', 'stepA', 1),
+                         ('walk1', 'stand', 0), ('walk2', 'stepB', 1), ('walk3', 'stand', 0)):
+    buf.write(f"  'commando.{_n}': hero('{_pose}', {_lift}),\n")
 
-used = {'wizard.stand', 'wizard.stepA', 'wizard.stepB'}
+used = {'commando.stand', 'commando.stepA', 'commando.stepB'}
 for title, names in ORDER:
     buf.write(f'\n  {title}\n')
     for n in names:

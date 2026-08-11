@@ -3,20 +3,20 @@
 
 // hold: 한 프레임을 몇 스텝 유지할지. loop: 마지막에서 되돌아갈지.
 export const CLIPS = {
-  'wizard.idle': { frames: ['wizard.idle0', 'wizard.idle1'], hold: 26, loop: true },
-  'wizard.walk': { frames: ['wizard.walk0', 'wizard.walk1', 'wizard.walk2', 'wizard.walk3'], hold: 7, loop: true },
+  'commando.idle': { frames: ['commando.idle0', 'commando.idle1'], hold: 26, loop: true },
+  'commando.walk': { frames: ['commando.walk0', 'commando.walk1', 'commando.walk2', 'commando.walk3'], hold: 7, loop: true },
 
-  bat: { frames: ['bat.0', 'bat.1'], hold: 5, loop: true },
-  slime: { frames: ['slime.0', 'slime.1'], hold: 14, loop: true },
-  skeleton: { frames: ['skeleton.0', 'skeleton.1'], hold: 11, loop: true },
-  ghost: { frames: ['ghost.0', 'ghost.1'], hold: 18, loop: true },
-  golem: { frames: ['golem.0', 'golem.1'], hold: 16, loop: true },
-  lich: { frames: ['lich.0', 'lich.1'], hold: 20, loop: true },
-  // 항아리는 가만히 있는다 — 한 장짜리 클립(그려지는 경로를 적과 똑같이 쓰려고 둔다)
-  pot: { frames: ['pot'], hold: 60, loop: true },
+  wisp: { frames: ['wisp.0', 'wisp.1'], hold: 5, loop: true },
+  jellyfish: { frames: ['jellyfish.0', 'jellyfish.1'], hold: 14, loop: true },
+  lemurian: { frames: ['lemurian.0', 'lemurian.1'], hold: 11, loop: true },
+  beetle: { frames: ['beetle.0', 'beetle.1'], hold: 18, loop: true },
+  guard: { frames: ['guard.0', 'guard.1'], hold: 16, loop: true },
+  titan: { frames: ['titan.0', 'titan.1'], hold: 20, loop: true },
+  // 배럴은 가만히 있는다 — 한 장짜리 클립(그려지는 경로를 적과 똑같이 쓰려고 둔다)
+  barrel: { frames: ['barrel'], hold: 60, loop: true },
 
-  bolt: { frames: ['bolt.0', 'bolt.1'], hold: 4, loop: true },
-  rune: { frames: ['rune.0', 'rune.1'], hold: 6, loop: true },
+  bullet: { frames: ['bullet.0', 'bullet.1'], hold: 4, loop: true },
+  drone: { frames: ['drone.0', 'drone.1'], hold: 6, loop: true },
   zap: { frames: ['zap.0', 'zap.1'], hold: 3, loop: true },
   flame: { frames: ['flame.0', 'flame.1', 'flame.2'], hold: 6, loop: true },
 };

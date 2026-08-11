@@ -1,4 +1,4 @@
-"""아케인 서바이벌 스프라이트 — 엔터 더 건전 · 던그리드 계열 규칙으로 다시 짠다.
+"""리스크 오브 레인 2 · 먼 곳의 횃대 스프라이트 — 엔터 더 건전 계열 규칙으로 찍는다.
 
 세 가지가 그 계열의 뼈대다.
   1) **머리가 큰 2등신**. 몸을 줄이고 머리·모자를 키운다. 실루엣이 멀리서도 읽힌다.
@@ -27,334 +27,293 @@ def sprite(name, pal, art=2):
     return deco
 
 
-# ============================ 마법사(주인공) ============================
-PAL['wizard'] = {
+# ============================ 코만도(주인공) ============================
+# RoR2 코만도 — 짙은 남색 코트, 목에 두른 천, 양손 권총. 2등신으로 줄였다.
+PAL['commando'] = {
     'k': K,
-    'd': '#3a1e7a', 'm': '#5a34c4', 'l': '#8a63f5',       # 로브 · 모자
-    'D': '#241350',                                       # 접지 그늘
-    'c': '#d9a01f', 'C': '#ffd23f',                       # 금
-    'x': '#c9825a', 's': '#f5c69c', 'S': '#ffe6c8',       # 살갗
-    'a': '#b8c2d8', 'b': '#e8eefc', 'w': '#ffffff',       # 수염
-    'n': '#6b4423', 'N': '#a97840',                       # 나무
-    'i': '#1a6ea8', 'o': '#3fc4ff', 'O': '#c8f4ff',       # 구슬
-    'e': '#1b1030',
+    'd': '#1d2a4a', 'm': '#2f4470', 'l': '#4c6aa0',       # 코트
+    'D': '#121a30',                                       # 접지 그늘
+    'r': '#8a3320', 'R': '#d4552e', 'p': '#ff9a5c',       # 목천 · 견장
+    'x': '#b5764a', 's': '#e8a877', 'S': '#ffd2a8',       # 살갗
+    'a': '#2a2f3d', 'w': '#5b6478', 'W': '#9aa4b8',       # 총 · 장비
+    'q': '#1f8ad4', 'Q': '#7fe2ff',                       # 고글
+    'c': '#a8791a', 'C': '#ffd23f',
 }
-WROBE = ['d', 'm', 'l']
-WSKIN = ['x', 's', 'S']
+CCOAT = ['d', 'm', 'l']
+CSKIN = ['x', 's', 'S']
+CGEAR = ['a', 'w', 'W']
 
 
-def _wiz(pose):
-    """2등신 — 모자와 머리가 키의 절반을 넘는다."""
-    c = Cv(32, 36)
-    cx = 13.0
+def _commando(pose):
+    c = Cv(30, 32)
+    cx = 14.0
     step = {'stand': 0, 'stepA': 1, 'stepB': -1}[pose]
 
-    # 지팡이 — 몸보다 먼저 그려 뒤로 물린다
-    sx = 23.0
-    c.rect(sx - 1, 11, sx, 33, 'N')
-    c.rect(sx - 1, 11, sx - 1, 33, 'n')
-    c.celsphere(sx - 0.5, 7.0, 3.2, 3.2, ['i', 'o', 'O'])
-
-    # 발 — 로브 아래로 코만 내민다
+    # 다리 — 코트 아래로 조금만 보인다
     for side, lead in ((-1, step > 0), (1, step < 0)):
-        fx = cx + side * 2.8 + (side * 1.2 if lead else 0)
-        c.rect(fx - 1.8, 33, fx + 1.8, 34, 'D')
-
-    # 몸통 — 작고 뭉툭하게. 로브 단은 금색 한 줄
-    c.celtaper(cx + step * 0.8, 22, 33, 5.0, 7.6, WROBE, curve=0.8)
-    for x in range(int(cx - 9), int(cx + 10)):
-        if c.get(x, 32) in 'dml':
-            c.put(x, 32, 'C' if x < cx else 'c')
-    # 소매와 손
-    c.celtaper(18.6, 24, 28, 2.4, 1.8, WROBE)
-    c.celsphere(20.4, 29.4, 2.2, 2.0, WSKIN)
-
-    # 머리 — 크게. 챙과 눈 사이를 띄워야 얼굴이 보인다
-    c.celsphere(cx, 18.4, 6.2, 6.0, WSKIN)
-    c.eyes([(cx - 3.2, 16.4), (cx + 1.6, 16.4)], 'e', 'w', w=2, h=2)
-    c.put(cx - 0.5, 19, 'x')                      # 코
-    for y in range(20, 27):                       # 수염 — 짧고 뾰족하게
-        t = (y - 20) / 6
-        half = 4.8 - t * t * 3.2
-        for x in range(int(round(cx - half)), int(round(cx + half)) + 1):
-            nx = (x + 0.5 - cx) / max(1.0, half)
-            c.put(x, y, 'w' if nx < -0.4 else ('b' if nx < 0.35 else 'a'))
-
-    # 고깔모자 — 크고 뒤로 젖혀졌다. 챙이 두꺼워야 마법사로 읽힌다
-    for y in range(0, 12):
-        t = y / 11
-        half = 0.8 + t * 5.6
-        ccx = cx - 5.6 + t * 5.2
-        c.celtaper(ccx, y, y, half, half, WROBE)
-    c.celsphere(cx - 0.4, 11.6, 8.6, 2.4, WROBE, lo=0.30, hi=0.74)
-    c.rect(cx - 7, 9, cx + 6, 9, 'c')             # 금색 띠
-    c.rect(cx - 7, 9, cx - 2, 9, 'C')
-    for dx, dy in ((0, 0), (-1, 1), (1, 1), (0, 2)):
-        c.put(cx - 6 + dx, 4 + dy, 'C')
-    c.put(cx - 6, 5, 'w')                         # 모자에 박힌 별
+        lx = cx + side * 2.8 + (side * 1.4 if lead else 0)
+        c.rect(lx - 1.8, 27, lx + 1.8, 29, 'a')
+        c.rect(lx - 2.2, 30, lx + 2.2, 31, 'D')
+    # 코트 — 어깨가 넓고 아래로 퍼진다
+    c.celtaper(cx + step * 0.6, 17, 29, 6.0, 8.0, CCOAT, curve=0.85)
+    c.rect(cx - 1, 20, cx, 29, 'd')                 # 앞섶
+    # 권총 — 양손에 하나씩
+    for side in (-1, 1):
+        gx = cx + side * 9.0
+        c.celsphere(gx, 20.5, 2.6, 2.4, CSKIN)      # 손
+        c.rect(gx - 1.4, 17.5, gx + 1.4, 19.5, 'w')
+        c.rect(gx - 1.4, 17.5, gx + 1.4, 17.5, 'W')
+        c.rect(gx + side * 0.6, 15.5, gx + side * 1.4, 17.5, 'a')
+    # 목에 두른 천
+    c.celsphere(cx, 15.6, 6.6, 2.6, ['r', 'R', 'p'])
+    c.rect(cx + 4, 16, cx + 6, 20, 'r')             # 흩날리는 자락
+    c.rect(cx + 4, 16, cx + 5, 18, 'R')
+    # 머리 — 크게. 고글 한 줄이 표정 전부다
+    c.celsphere(cx, 9.0, 7.0, 7.2, CSKIN)
+    c.celsphere(cx, 5.4, 7.4, 4.6, CCOAT)           # 후드 · 모자
+    c.rect(cx - 7, 8.6, cx + 7, 8.6, 'D')
+    c.rect(cx - 6, 9.6, cx + 6, 11.6, 'a')          # 고글 띠
+    c.rect(cx - 5, 10.0, cx - 2, 11.2, 'q')
+    c.rect(cx + 2, 10.0, cx + 5, 11.2, 'q')
+    c.put(cx - 5, 10.0, 'Q')
+    c.put(cx + 2, 10.0, 'Q')
     c.ao('D', 'dm')
     c.outline('k')
     return c.rows(trim=False)
 
 
-for _n, _p in (('wizard.stand', 'stand'), ('wizard.stepA', 'stepA'), ('wizard.stepB', 'stepB')):
-    sprite(_n, 'wizard')(lambda p=_p: _wiz(p))
+for _n, _p in (('commando.stand', 'stand'), ('commando.stepA', 'stepA'), ('commando.stepB', 'stepB')):
+    sprite(_n, 'commando')(lambda p=_p: _commando(p))
 
 
-# ============================ 슬라임 ============================
-PAL['slime'] = {
-    'k': K, 'D': '#0b3d1c', 'd': '#158a3a', 'm': '#2fd45e', 'l': '#8bff9e',
-    'e': '#06210f', 'w': '#ffffff',
+# ============================ 레무리안 ============================
+# 두 발로 서는 작은 주황 도마뱀. 물어뜯고 불덩이를 뱉는다.
+PAL['lemurian'] = {
+    'k': K, 'D': '#5c1a08', 'd': '#a83a10', 'm': '#e86a24', 'l': '#ffa martian'.replace(' martian', '55c'),
+    'b': '#f4e4c8', 'e': '#160c08', 'q': '#ffd23f', 'Q': '#fff6c0',
 }
+LEM = ['d', 'm', 'l']
 
 
-def _slime(sq):
-    c = Cv(26, 20)
-    cy = 12.0 + sq
-    c.celsphere(13.0, cy, 12.0 + sq, 8.4 - sq, ['d', 'm', 'l'], lo=0.30, hi=0.76)
+def _lemurian(step):
+    c = Cv(28, 26)
+    cx = 13.0
+    lean = 1 if step else 0
+    # 꼬리 — 뒤로 길게 뻗는다
+    for i in range(11):
+        t = i / 10
+        c.put(cx - 6 - i, 20 - int(t * t * 5) + lean, 'd' if i > 5 else 'm')
+        c.put(cx - 6 - i, 21 - int(t * t * 5) + lean, 'D')
+    # 다리
+    for side, ahead in ((-1, step), (1, 1 - step)):
+        lx = cx + side * 2.6
+        c.rect(lx - 1.4, 20, lx + 1.4, 23 - ahead, 'm')
+        c.rect(lx - 2.0, 24 - ahead, lx + 2.4, 25 - ahead, 'd')
+    # 몸통 — 앞으로 숙인 자세
+    c.celtaper(cx, 11, 21, 4.6, 5.6, LEM, curve=0.9)
+    # 머리 — 크고 주둥이가 앞으로 튀어나온다
+    c.celsphere(cx + 2.0, 7.5, 6.4, 5.6, LEM)
+    c.rect(cx + 6, 8, cx + 10, 10, 'm')              # 주둥이
+    c.rect(cx + 6, 8, cx + 10, 8, 'l')
+    c.rect(cx + 6, 11, cx + 10, 11, 'd')
+    for x in range(int(cx) + 6, int(cx) + 10, 2):    # 이빨
+        c.put(x, 10, 'b')
+    c.eyes([(cx + 2, 5)], 'e', 'q', w=3, h=3)
+    c.put(cx + 2, 5, 'Q')
+    for i in range(4):                               # 등지느러미
+        c.put(cx - 3 - i * 0.6, 10 - i * 0.2 + i, 'd')
     c.ao('D', 'dm')
-    c.eyes([(8, cy - 3), (15, cy - 3)], 'e', 'w', w=3, h=4)
-    c.rect(11, cy + 3, 14, cy + 3, 'e')           # 입
-    c.put(10, cy + 2, 'e')
-    c.put(15, cy + 2, 'e')
-    c.rect(5, cy - 5, 7, cy - 4, 'l')             # 젤리 반사
     c.outline('k')
     return c.rows()
 
 
-sprite('slime.0', 'slime')(lambda: _slime(0))
-sprite('slime.1', 'slime')(lambda: _slime(1))
+sprite('lemurian.0', 'lemurian')(lambda: _lemurian(0))
+sprite('lemurian.1', 'lemurian')(lambda: _lemurian(1))
 
 
-# ============================ 유령 ============================
-PAL['ghost'] = {
-    'k': K, 'D': '#3f4a8c', 'd': '#6b7ac4', 'm': '#a8b8ee', 'l': '#eef4ff',
-    'e': '#161038', 'q': '#4fe0ff', 'w': '#ffffff',
+# ============================ 레서 위습 ============================
+# 쇠 테두리 안에서 타는 푸른 불꽃. 떠다니며 불덩이를 쏜다.
+PAL['wisp'] = {
+    'k': K, 'D': '#101a2e', 'd': '#2a3c5c', 'm': '#4a6390', 'l': '#8aa4d0',
+    'i': '#1f6ad4', 'o': '#4fc4ff', 'O': '#c8f4ff', 'w': '#ffffff',
 }
 
 
-def _ghost(ph):
+def _wisp(ph):
+    c = Cv(22, 24)
+    cx, cy = 10.5, 11.0
+    # 쇠 테 — 위아래로 갈라진 고리
+    for a in range(0, 360, 4):
+        rad = math.radians(a)
+        if 70 < a % 360 < 110 or 250 < a % 360 < 290:
+            continue
+        for rr, ch in ((7.4, 'd'), (8.4, 'm'), (9.4, 'D')):
+            c.put(cx + math.cos(rad) * rr, cy + math.sin(rad) * rr, ch)
+    c.rect(cx - 9, cy - 1, cx - 7, cy + 1, 'l')      # 테를 잡는 물림쇠
+    c.rect(cx + 7, cy - 1, cx + 9, cy + 1, 'd')
+    # 불꽃 — 프레임마다 한 겹 부푼다
+    r = 5.4 + ph * 0.6
+    c.celsphere(cx, cy, r, r, ['i', 'o', 'O'], lo=0.30, hi=0.66)
+    c.celsphere(cx - 0.6, cy - 0.6, r * 0.45, r * 0.45, ['w', 'w', 'w'])
+    for dx, dy in ((0, -7 - ph), (-3, -6), (3, -6)):  # 위로 솟는 불꽃
+        c.put(cx + dx, cy + dy, 'o')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('wisp.0', 'wisp')(lambda: _wisp(0))
+sprite('wisp.1', 'wisp')(lambda: _wisp(1))
+
+
+# ============================ 해파리 ============================
+# 둥실 떠다니다 몸을 부풀려 터진다. 촉수가 파랗게 빛난다.
+PAL['jelly'] = {
+    'k': K, 'D': '#3a1a5c', 'd': '#7a2ea8', 'm': '#c04ce0', 'l': '#f0a8ff',
+    'q': '#3fe0ff', 'Q': '#d8ffff', 'e': '#1a0c2e',
+}
+
+
+def _jelly(ph):
     c = Cv(24, 26)
     cx = 11.5
-    # 머리 — 크고 둥글게
-    c.celsphere(cx, 11.0, 10.6, 10.4, ['d', 'm', 'l'], lo=0.30, hi=0.74)
-    # 몸통 — 아래로 이어지다 세 갈래 물결로 끝난다
-    for y in range(11, 26):
-        half = 10.6 - (y - 11) * 0.15
-        w = math.cos((y * 0 + 1) * 0)  # 자리 표시
-        for x in range(int(round(cx - half)), int(round(cx + half)) + 1):
-            d = (x + 0.5 - cx) / 11.0
-            bottom = 23.5 + math.cos(d * math.pi * 3 + ph * math.pi) * 2.0 - d * d * 2.4
-            if y > bottom:
-                continue
-            nx = d / max(0.2, half / 11.0)
-            lam = nx * -0.62 + math.sqrt(max(0.0, 1 - min(1.0, nx * nx))) * 0.62
-            c.put(x, y, 'l' if lam > 0.72 else ('m' if lam > 0.34 else 'd'))
+    # 촉수 — 갓 아래로 흔들린다
+    for i, tx in enumerate((-6, -2, 2, 6)):
+        for t in range(7):
+            x = cx + tx + math.sin((t + ph * 2) * 0.9 + i) * 1.6
+            c.put(x, 14 + t, 'd' if t < 4 else 'q')
+    # 갓 — 위가 부풀고 아래가 열린 종 모양
+    c.celsphere(cx, 10.0, 10.4, 9.0, ['d', 'm', 'l'], lo=0.30, hi=0.72,
+                clip=lambda x, y: y <= 13)
+    c.rect(cx - 10, 13, cx + 10, 14, 'd')
+    # 속에서 빛나는 핵
+    c.celsphere(cx, 9.0, 3.4 + ph * 0.6, 3.0 + ph * 0.6, ['q', 'q', 'Q'])
+    c.eyes([(cx - 5, 6), (cx + 2, 6)], 'e', 'Q', w=3, h=3)
     c.ao('D', 'dm')
-    c.eyes([(cx - 5, 8), (cx + 1.5, 8)], 'e', 'q', w=3, h=4)
-    c.rect(cx - 1.5, 14, cx + 1.5, 15, 'e')       # 벌린 입
     c.outline('k')
     return c.rows()
 
 
-sprite('ghost.0', 'ghost')(lambda: _ghost(0))
-sprite('ghost.1', 'ghost')(lambda: _ghost(1))
+sprite('jellyfish.0', 'jelly')(lambda: _jelly(0))
+sprite('jellyfish.1', 'jelly')(lambda: _jelly(1))
 
 
-# ============================ 박쥐 ============================
-PAL['bat'] = {
-    'k': K, 'D': '#2a1a52', 'd': '#4a2f9c', 'm': '#7a52e0', 'l': '#b79cff',
-    'n': '#3a2a5c', 'N': '#5e4a86',
-    'e': '#ff3b52', 'w': '#ffffff', 'F': '#ffffff',
+# ============================ 비틀 ============================
+# 납작한 등껍질을 이고 달려드는 벌레. 먼 곳의 횃대에 흔하다.
+PAL['beetle'] = {
+    'k': K, 'D': '#2a1c10', 'd': '#5c3d1c', 'm': '#96692e', 'l': '#c99a55',
+    'e': '#160c08', 'q': '#ff8a1a', 'Q': '#ffd23f', 'a': '#3a2a18',
 }
 
 
-def _bat(up):
-    c = Cv(32, 20)
-    cx, cy = 16.0, 11.0
-    # 날개 — 위 모서리는 곧고 아래는 세 갈래로 파인다
+def _beetle(step):
+    c = Cv(26, 20)
+    cx, cy = 12.5, 11.0
+    # 다리 — 여섯. 걸음마다 각도가 바뀐다
     for side in (-1, 1):
-        for i in range(13):
-            t = i / 12
-            x = cx + side * (4.5 + i)
-            top = cy - 3.0 - (5.4 * t if up else -2.6 * t)
-            depth = (7.0 - 4.6 * t) * (0.62 + 0.38 * math.cos(t * 3 * math.pi))
-            for y in range(int(round(top)), int(round(top + depth)) + 1):
-                u = (y - top) / max(1e-6, depth)
-                c.put(x, y, 'd' if (side > 0 or u > 0.6) else 'm')
-            c.put(x, top, 'l' if side < 0 else 'm')       # 날개 앞머리
-    # 머리 — 몸의 대부분
-    c.celsphere(cx, cy, 7.0, 6.4, ['d', 'm', 'l'], lo=0.32, hi=0.74)
-    for side in (-1, 1):                          # 귀 — 짧은 삼각
-        for i in range(4):
-            for j in range(4 - i):
-                c.put(cx + side * (2.4 + i * 0.8) + side * j, cy - 6 - i,
-                      'l' if side < 0 else 'm')
+        for i, lx in enumerate((-5, 0, 5)):
+            sw = 1 if (i % 2 == 0) == bool(step) else 0
+            c.line(cx + lx, cy + 3, cx + lx + side * 4, cy + 6 + sw, 'a')
+            c.put(cx + lx + side * 4, cy + 7 + sw, 'a')
+    # 등껍질
+    c.celsphere(cx, cy, 11.0, 7.4, ['d', 'm', 'l'], lo=0.32, hi=0.72)
+    c.rect(cx, cy - 7, cx, cy + 6, 'D')              # 등 가운데 이음선
+    for dx in (-6, 6):                               # 껍질 무늬
+        c.rect(cx + dx, cy - 4, cx + dx, cy + 3, 'd')
+    # 머리 — 앞쪽에 붙은 작은 덩어리
+    c.celsphere(cx + 9.5, cy + 1.0, 4.0, 3.4, ['d', 'm', 'l'])
+    c.eyes([(cx + 9, cy - 1)], 'e', 'q', w=3, h=2)
+    c.put(cx + 9, cy - 1, 'Q')
     c.ao('D', 'dm')
-    c.eyes([(cx - 4, cy - 2), (cx + 1, cy - 2)], 'e', 'w', w=3, h=3)
-    c.put(cx - 1, cy + 3, 'F')                    # 송곳니
-    c.put(cx + 1, cy + 3, 'F')
     c.outline('k')
     return c.rows()
 
 
-sprite('bat.0', 'bat')(lambda: _bat(True))
-sprite('bat.1', 'bat')(lambda: _bat(False))
+sprite('beetle.0', 'beetle')(lambda: _beetle(0))
+sprite('beetle.1', 'beetle')(lambda: _beetle(1))
 
 
-# ============================ 해골 ============================
-PAL['bone'] = {
-    'k': K, 'D': '#6b6350', 'd': '#a89c7c', 'm': '#ded3b0', 'l': '#fdf8e4',
-    'e': '#120c1e', 'q': '#ff7a1a', 'Q': '#ffd23f',
+# ============================ 비틀 가드(엘리트) ============================
+PAL['guard'] = {
+    'k': K, 'D': '#241a12', 'd': '#4a3a24', 'm': '#7d6640', 'l': '#b39a68',
+    'i': '#2f3742', 'I': '#6b7789', 'e': '#160c08', 'q': '#ff8a1a', 'Q': '#ffd23f',
 }
+GD = ['d', 'm', 'l']
 
 
-def _skele(step):
-    c = Cv(22, 30)
-    cx = 10.5
-    # 두개골 — 크게
-    c.celsphere(cx, 8.0, 8.4, 7.6, ['d', 'm', 'l'], lo=0.32, hi=0.72)
-    c.rect(cx - 4, 13, cx + 4, 15, 'm')            # 턱
-    c.rect(cx - 4, 15, cx + 4, 15, 'd')
-    for x in range(int(cx) - 3, int(cx) + 4, 2):   # 이빨
-        c.put(x, 14, 'e')
-    c.eyes([(cx - 5, 5), (cx + 1, 5)], 'e', 'q', w=4, h=4)
-    c.put(cx - 5, 5, 'Q')
-    c.put(cx + 1, 5, 'Q')
-    c.put(cx - 0.5, 10, 'e')                       # 코
-    # 갈비뼈 — 사이가 비어야 갈비로 읽힌다
-    for i, y in enumerate((18, 20, 22)):
-        w = 4.4 - i * 0.6
-        c.rect(cx - w, y, cx + w, y, 'm')
-        c.rect(cx - w, y, cx - w + 1, y, 'l')
-        c.rect(cx + w - 1, y, cx + w, y, 'd')
-    c.rect(cx - 0.5, 17, cx + 0.5, 23, 'm')        # 척추
-    c.rect(cx - 3, 24, cx + 3, 25, 'm')            # 골반
-    c.rect(cx - 3, 25, cx + 3, 25, 'd')
-    # 팔 · 다리
+def _guard(step):
+    c = Cv(38, 32)
+    cx, cy = 19.0, 15.0
+    # 네 다리 — 굵고 짧게
     for side in (-1, 1):
-        c.rect(cx + side * 5.5, 17, cx + side * 5.5, 22, 'm')
-        c.put(cx + side * 5.5, 23, 'l' if side < 0 else 'd')
-        lead = (side > 0) == bool(step)
-        lx = cx + side * (2.6 if lead else 1.8)
-        c.rect(lx - 0.5, 26, lx + 0.5, 28, 'm')
-        c.rect(lx - 1.5 + side * 0.5, 29, lx + 1.5 + side * 0.5, 29, 'd')
+        for i, lx in enumerate((-7, 4)):
+            sw = 1 if (i == 0) == bool(step) else 0
+            c.celtaper(cx + lx + side * 9, cy + 6, cy + 14 - sw, 2.2, 1.8, GD)
+            c.rect(cx + lx + side * 9 - 3, cy + 15 - sw, cx + lx + side * 9 + 3, cy + 16 - sw, 'D')
+    # 몸통 — 두꺼운 갑각
+    c.celsphere(cx, cy, 14.0, 9.4, GD, lo=0.32, hi=0.70)
+    c.rect(cx, cy - 9, cx, cy + 8, 'D')
+    for dx in (-8, 8):
+        c.rect(cx + dx, cy - 6, cx + dx, cy + 5, 'd')
+    # 어깨 갑판
+    for side in (-1, 1):
+        c.celsphere(cx + side * 10, cy - 6.0, 5.4, 3.4, ['i', 'I', 'I'])
+    # 머리
+    c.celsphere(cx + 12.5, cy + 2.0, 5.4, 4.4, GD)
+    c.eyes([(cx + 11, cy)], 'e', 'q', w=4, h=3)
+    c.put(cx + 11, cy, 'Q')
+    for i in range(3):                               # 뿔
+        c.put(cx + 16 + i, cy - 3 - i, 'I')
     c.ao('D', 'dm')
     c.outline('k')
     return c.rows()
 
 
-sprite('skeleton.0', 'bone')(lambda: _skele(0))
-sprite('skeleton.1', 'bone')(lambda: _skele(1))
+sprite('guard.0', 'guard')(lambda: _guard(0))
+sprite('guard.1', 'guard')(lambda: _guard(1))
 
 
-# ============================ 골렘(엘리트) ============================
-PAL['stone'] = {
-    'k': K, 'D': '#1e2f2a', 'd': '#3d5c52', 'm': '#628578', 'l': '#93b8a2',
-    'g': '#2f7a33', 'G': '#4fb04a',
-    'q': '#8f2a00', 'e': '#ff7a1a', 'E': '#ffd23f',
+# ============================ 스톤 타이탄(보스) ============================
+PAL['titan'] = {
+    'k': K, 'D': '#1a2028', 'd': '#3b4553', 'm': '#63707f', 'l': '#98a6b4',
+    'g': '#2f6b4a', 'G': '#4fa870',
+    'q': '#2f9fe8', 'Q': '#c8f0ff', 'w': '#ffffff',
 }
-ST = ['d', 'm', 'l']
+TT = ['d', 'm', 'l']
 
 
-def _golem(step):
-    """어깨가 넓고 다리가 짧은 2등신. 머리는 몸통에 파묻힌 작은 바위다."""
-    c = Cv(38, 36)
-    cx = 19.0
-    sway = 0.6 if step else -0.6
+def _titan(step):
+    c = Cv(46, 48)
+    cx = 23.0
+    sway = 0.8 if step else -0.8
     # 다리
     for side in (-1, 1):
         lead = 1.0 if (side > 0) == bool(step) else 0.0
-        c.celtaper(cx + side * 5.4, 28, 35 - lead, 3.8, 3.4, ST)
-    # 팔
+        c.celtaper(cx + side * 7.0, 34, 47 - lead, 5.4, 4.6, TT)
+    # 팔 — 몸통 옆으로 늘어뜨린 바위 기둥
     for side in (-1, 1):
-        ax = cx + side * 13.6
-        c.celsphere(ax, 18.0 + side * sway, 4.6, 7.0, ST)
-        c.celsphere(ax + side * 0.6, 25.0 + side * sway, 5.0, 4.4, ST)
+        ax = cx + side * 17.0
+        c.celsphere(ax, 22.0 + side * sway, 5.4, 9.0, TT)
+        c.celsphere(ax + side * 0.8, 32.0 + side * sway, 6.0, 5.0, TT)
     # 몸통
-    c.celtaper(cx + sway * 0.5, 11, 29, 10.6, 7.0, ST, curve=0.85)
-    # 어깨
-    for side in (-1, 1):
-        c.celsphere(cx + side * 9.6, 12.0 + side * sway, 5.6, 4.4, ST)
-    # 머리 — 어깨 사이에 낀 작은 바위
-    c.celsphere(cx, 6.6, 6.4, 6.0, ST)
-    c.rect(cx - 4, 11, cx + 4, 11, 'D')            # 목 그늘
-    c.rect(cx - 4.6, 5, cx - 1.6, 7, 'q')          # 눈 — 갈라진 틈에서 새는 빛
-    c.rect(cx + 1.6, 5, cx + 4.6, 7, 'q')
-    c.rect(cx - 4.6, 5, cx - 2.6, 6, 'e')
-    c.rect(cx + 1.6, 5, cx + 3.6, 6, 'e')
-    c.put(cx - 4.6, 5, 'E')
-    c.put(cx + 1.6, 5, 'E')
-    # 균열과 용암 — 가슴에서 옆구리로 비스듬히
-    c.line(cx - 5, 15, cx - 1, 21, 'q')
-    c.line(cx - 1, 21, cx + 3, 24, 'q')
-    c.line(cx - 4, 16, cx - 1, 20, 'e')
+    c.celtaper(cx + sway * 0.5, 12, 36, 13.0, 9.0, TT, curve=0.85)
+    for side in (-1, 1):                             # 어깨
+        c.celsphere(cx + side * 12.0, 14.0 + side * sway, 7.0, 5.4, TT)
+    # 머리 — 눈이 하나. 레이저를 쏜다
+    c.celsphere(cx, 6.0, 7.4, 6.4, TT)
+    c.celsphere(cx, 6.2, 4.0, 3.2, ['q', 'q', 'Q'])
+    c.celsphere(cx - 0.6, 5.6, 1.8, 1.4, ['w', 'w', 'w'])
+    c.rect(cx - 6, 12, cx + 6, 12, 'D')
     # 이끼 — 윗면에만
-    for mx, my, rx, ry in ((cx - 9.6, 9.4, 4.0, 1.8), (cx + 9, 9.0, 3.4, 1.6),
-                           (cx - 1, 1.8, 3.6, 1.6)):
+    for mx, my, rx, ry in ((cx - 12, 11.0, 4.6, 2.0), (cx + 11, 10.6, 4.0, 1.8),
+                           (cx - 2, 0.6, 4.0, 1.6)):
         c.celsphere(mx, my, rx, ry, ['g', 'G', 'G'], clip=lambda x, y: c.get(x, y) in 'ml')
     c.ao('D', 'dm')
     c.outline('k')
     return c.rows()
 
 
-sprite('golem.0', 'stone')(lambda: _golem(0))
-sprite('golem.1', 'stone')(lambda: _golem(1))
-
-
-# ============================ 리치(보스) ============================
-PAL['lich'] = {
-    'k': K, 'D': '#20114a', 'd': '#3a1f8c', 'm': '#5c36cc', 'l': '#9068ff',
-    'a': '#b8b09a', 'b': '#e8e2cc', 'w': '#fffdf2',
-    'e': '#14092e', 'q': '#3fe6ff', 'Q': '#e8ffff',
-    'c': '#d9a01f', 'C': '#ffd23f',
-}
-LR = ['d', 'm', 'l']
-LB = ['a', 'b', 'w']
-
-
-def _lich(ph):
-    """왕관 쓴 커다란 해골 + 짧은 로브. 머리가 몸보다 크다."""
-    c = Cv(42, 44)
-    cx = 20.5
-    # 로브 — 짧고 넓게. 아랫단이 너덜너덜하다
-    def hem(x):
-        d = (x + 0.5 - cx) / 16.0
-        return 40.0 + math.cos(d * math.pi * 4 + ph * math.pi) * 2.2 - d * d * 4.0
-    c.celtaper(cx, 24, 42, 8.0, 16.0, LR, curve=0.85, clipfn=lambda x, y: y <= hem(x))
-    # 어깨 갑주
-    for side in (-1, 1):
-        c.celsphere(cx + side * 10.6, 25.0, 6.0, 4.0, LR)
-        c.celsphere(cx + side * 12.0, 31.0, 3.6, 5.0, LR)
-        c.celsphere(cx + side * 12.4, 35.4, 2.6, 2.4, LB)   # 해골 손
-    # 두건과 해골
-    c.celsphere(cx, 15.0, 11.0, 11.4, LR)
-    c.celsphere(cx, 16.0, 8.4, 9.0, ['e', 'e', 'e'])
-    c.celsphere(cx, 15.0, 7.4, 7.6, LB, lo=0.32, hi=0.72)
-    c.rect(cx - 4, 21, cx + 4, 23, 'b')                     # 턱
-    for x in range(int(cx) - 3, int(cx) + 4, 2):
-        c.put(x, 22, 'e')
-    c.eyes([(cx - 4.6, 12), (cx + 1.6, 12)], 'e', 'q', w=4, h=4)
-    c.put(cx - 4.6, 12, 'Q')
-    c.put(cx + 1.6, 12, 'Q')
-    # 왕관
-    for dx in (-7, -3.5, 0, 3.5, 7):
-        h = 4 if dx == 0 else 3
-        for j in range(h):
-            c.put(cx + dx, 4 - j + (0 if dx == 0 else 1), 'C' if j < h - 1 else 'c')
-    c.rect(cx - 8, 5, cx + 8, 6, 'c')
-    c.rect(cx - 8, 5, cx + 1, 5, 'C')
-    # 가슴의 마력 핵
-    rr = 3.0 + ph * 0.8
-    c.celsphere(cx, 29.0, rr + 1.2, rr + 1.2, ['q', 'q', 'q'])
-    c.celsphere(cx, 29.0, rr, rr, ['Q', 'Q', 'Q'])
-    c.ao('D', 'dm')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('lich.0', 'lich')(lambda: _lich(0))
-sprite('lich.1', 'lich')(lambda: _lich(1))
+sprite('titan.0', 'titan')(lambda: _titan(0))
+sprite('titan.1', 'titan')(lambda: _titan(1))
 
 
 # ============================ 주워 먹는 것 ============================
@@ -455,28 +414,34 @@ sprite('coin', 'coin')(_coin)
 
 
 # ============================ 부술 수 있는 물건 ============================
-PAL['pot'] = {'k': K, 'D': '#4a2410', 'd': '#8a4f22', 'm': '#c47b3c', 'l': '#eeae6f',
-              'b': '#2f6fe0', 'B': '#8fc4ff'}
+PAL['barrel'] = {'k': K, 'D': '#2e1a08', 'd': '#5c3a14', 'm': '#8f5f28', 'l': '#c49255',
+                 'i': '#2f3742', 'I': '#7d8b9e', 'q': '#ff8a1a', 'Q': '#ffd23f'}
 
 
-def _pot():
-    c = Cv(20, 20)
-    c.celsphere(9.5, 12.5, 8.6, 7.4, ['d', 'm', 'l'], lo=0.32, hi=0.74)
-    c.celtaper(9.5, 5, 9, 4.6, 6.4, ['d', 'm', 'l'])
-    c.celsphere(9.5, 4.0, 6.2, 2.2, ['d', 'm', 'l'], lo=0.28, hi=0.70)
-    c.celsphere(9.5, 3.6, 4.0, 1.2, ['k', 'k', 'k'])
-    c.rect(4, 6, 15, 6, 'D')
-    for x in range(2, 18):                        # 푸른 무늬 띠
-        if c.get(x, 12) in 'dml':
-            c.put(x, 12, 'B' if x < 9 else 'b')
-        if c.get(x, 13) in 'dml':
-            c.put(x, 13, 'b')
+def _barrel():
+    """RoR2 배럴 — 나무통에 쇠테. 부수면 안에 든 게 튀어나온다."""
+    c = Cv(18, 22)
+    cx = 8.5
+    c.celtaper(cx, 3, 20, 7.4, 6.6, ['d', 'm', 'l'], curve=0.5)
+    c.celsphere(cx, 3.0, 7.4, 2.2, ['d', 'm', 'l'], lo=0.28, hi=0.70)
+    for y in (6, 16):                              # 쇠테
+        for x in range(0, 18):
+            if c.get(x, y) in 'dml':
+                c.put(x, y, 'I' if x < cx else 'i')
+            if c.get(x, y + 1) in 'dml':
+                c.put(x, y + 1, 'i')
+    for x in (4, 8, 12):                           # 널빤지 이음선
+        for y in range(3, 21):
+            if c.get(x, y) == 'm':
+                c.put(x, y, 'd')
+    c.rect(cx - 2, 10, cx + 2, 12, 'q')            # 겉에 찍힌 표식
+    c.rect(cx - 2, 10, cx, 11, 'Q')
     c.ao('D', 'dm')
     c.outline('k')
     return c.rows()
 
 
-sprite('pot', 'pot')(_pot)
+sprite('barrel', 'barrel')(_barrel)
 
 
 PAL['chest'] = {'k': K, 'D': '#2e1a06', 'd': '#5f380f', 'm': '#9c6026', 'l': '#d99a5a',
@@ -508,7 +473,7 @@ sprite('chest', 'chest')(_chest)
 
 
 # ============================ 배경 장식 ============================
-PAL['rock'] = {'k': K, 'D': '#1c2620', 'd': '#3c4c42', 'm': '#63776a', 'l': '#95a894',
+PAL['rock'] = {'k': K, 'D': '#1b2427', 'd': '#3a484c', 'm': '#5f7276', 'l': '#91a4a6',
                'g': '#2f7a33', 'G': '#4fb04a'}
 
 
@@ -653,8 +618,8 @@ def _bolt(step):
     return c.rows()
 
 
-sprite('bolt.0', 'arcane')(lambda: _bolt(0))
-sprite('bolt.1', 'arcane')(lambda: _bolt(1))
+sprite('bullet.0', 'arcane')(lambda: _bolt(0))
+sprite('bullet.1', 'arcane')(lambda: _bolt(1))
 
 
 PAL['frost'] = {'k': K, 'd': '#1c5a8c', 'm': '#4fb6e8', 'l': '#c8f0ff', 'w': '#ffffff'}
@@ -673,7 +638,7 @@ def _shard():
     return c.rows()
 
 
-sprite('shard', 'frost')(_shard)
+sprite('phase', 'frost')(_shard)
 
 
 PAL['rune'] = {'k': K, 'd': '#a8791a', 'm': '#ffd23f', 'l': '#fff2b8', 'w': '#ffffff'}
@@ -694,8 +659,8 @@ def _rune(step):
     return c.rows()
 
 
-sprite('rune.0', 'rune')(lambda: _rune(0))
-sprite('rune.1', 'rune')(lambda: _rune(1))
+sprite('drone.0', 'rune')(lambda: _rune(0))
+sprite('drone.1', 'rune')(lambda: _rune(1))
 
 
 PAL['fire'] = {'k': K, 'd': '#a82a00', 'm': '#ff7a1a', 'l': '#ffd23f', 'w': '#fff2b8'}
@@ -750,10 +715,10 @@ sprite('zap.1', 'zap')(lambda: _zap(1))
 
 # ============================ 바닥 타일 ============================
 # 배경은 어두워야 캐릭터가 앞으로 나온다. 명도를 낮추고 덩어리로 결을 넣는다.
-PAL['ground'] = {'a': '#22331c', 'b': '#283c21', 'c': '#2f4726', 'd': '#1a2916', 'e': '#3a5a2e'}
-PAL['moss'] = {'a': '#1f2f1a', 'b': '#25381e', 'c': '#2c4323', 'd': '#182514', 'e': '#355428'}
-PAL['path'] = {'a': '#332a1e', 'b': '#3c3224', 'c': '#463a2a', 'd': '#281f16', 'e': '#54452f',
-               'g': '#22331c', 'G': '#283c21', 'h': '#1a2916'}
+PAL['ground'] = {'a': '#2b3a3c', 'b': '#334345', 'c': '#3c4e4f', 'd': '#222e30', 'e': '#48605c'}
+PAL['moss'] = {'a': '#293a33', 'b': '#2f4238', 'c': '#374d3f', 'd': '#212f2a', 'e': '#436049'}
+PAL['path'] = {'a': '#2f3a38', 'b': '#374340', 'c': '#3f4d49', 'd': '#26302f', 'e': '#4a5a54',
+               'g': '#2b3a3c', 'G': '#334345', 'h': '#222e30'}
 
 
 class _Rnd:
@@ -809,7 +774,7 @@ sprite('tile.moss1', 'moss', art=2)(lambda: _tile(90210, blobs=16, blades=28))
 sprite('tile.path', 'path', art=2)(lambda: _tile(31337, blobs=12, blades=6, pebbles=10, fringe=True))
 
 
-# ============================ 아이템 아이콘 ============================
+# ============================ 스킬 · 아이템 아이콘 ============================
 # HUD 칸(11도트)에 나란히 서므로 규격을 맞춘다. 형태는 굵게, 색은 세 단.
 PAL['item'] = {
     'k': K,
@@ -818,223 +783,261 @@ PAL['item'] = {
     'b': '#1f4e9c', 'B': '#3f8ae8', 'C': '#a8dcff',
     'y': '#a8791a', 'Y': '#ffd23f', 'c': '#fff2b8',
     'd': '#a82a00', 'o': '#ff7a1a', 'O': '#ffd23f',
-    'a': '#3a4457', 'w': '#8d99ad', 'W': '#e8eef8',
+    'a': '#2a3040', 'w': '#6b7789', 'W': '#dbe4f2',
     'm': '#4d3010', 'M': '#96683a', 'n': '#c19a6b',
     'v': '#4a2ba8', 'V': '#8a5cf0', 'X': '#d9c8ff',
+    'q': '#1f8ad4', 'Q': '#7fe2ff',
 }
 
 
-def _potion(tone):
-    d, m, l = tone
-    c = Cv(16, 20)
-    c.celsphere(7.5, 13.0, 6.6, 6.6, [d, m, l], lo=0.32, hi=0.74)
-    c.celtaper(7.5, 4, 8, 2.4, 4.4, [d, m, l])
-    c.rect(4, 2, 11, 4, 'M')
-    c.rect(4, 2, 11, 2, 'n')
-    c.rect(3, 5, 12, 5, 'W')
-    c.rect(4, 10, 5, 12, 'W')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.vigor', 'item')(lambda: _potion(('r', 'R', 'p')))
-sprite('item.regen', 'item')(lambda: _potion(('g', 'G', 'j')))
-
-
-def _icon_bolt():
-    c = Cv(20, 20)
-    for w in range(2):
-        c.line(4 + w, 17, 11 + w, 10, 'v' if w else 'V')
-    c.tri((18, 2), (9, 8), (15, 13), 'V')
-    c.tri((18, 2), (10, 7), (13, 8), 'X')
-    c.tri((6, 19), (3, 16), (9, 15), 'v')
-    c.rect(15, 3, 16, 4, 'X')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.bolt', 'item')(_icon_bolt)
-
-
-def _icon_shard():
-    c = Cv(20, 14)
-    for x in range(20):
-        half = min(x, 19 - x) * 0.72
-        if half < 0.4:
-            continue
-        for y in range(int(round(7 - half)), int(round(7 + half)) + 1):
-            f = (y - 7) + (x - 10) * 0.22
-            c.put(x, y, 'W' if f < -2.2 else ('C' if f < 0.2 else ('B' if f < 2.4 else 'b')))
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.shard', 'item')(_icon_shard)
-
-
-def _icon_rune():
-    c = Cv(18, 18)
-    c.celsphere(8.5, 8.5, 8.4, 8.4, ['y', 'Y', 'c'], lo=0.32, hi=0.72)
-    c.rect(8, 2, 9, 14, 'm')                 # 새긴 인장 — 어두워야 보인다
-    c.rect(2, 8, 15, 9, 'm')
-    for d in range(-4, 5):
-        c.put(8 + d, 8 + d, 'm')
-    c.rect(4, 3, 5, 4, 'c')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.rune', 'item')(_icon_rune)
-
-
-def _icon_aura():
-    c = Cv(20, 20)
-    for a in range(0, 360, 3):
-        rad = math.radians(a)
-        for rr, ch in ((6.2, 'O'), (7.4, 'o'), (8.6, 'd')):
-            c.put(9.5 + math.cos(rad) * rr, 9.5 + math.sin(rad) * rr * 0.94, ch)
-    for a in range(0, 360, 45):
-        rad = math.radians(a)
-        for t in range(2):
-            c.put(9.5 + math.cos(rad) * (9.4 + t), 9.5 + math.sin(rad) * (9 + t), 'o' if t == 0 else 'd')
-    c.celsphere(9.5, 9.5, 3.0, 3.0, ['d', 'o', 'O'], lo=0.32, hi=0.7)
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.aura', 'item')(_icon_aura)
-
-
-def _icon_zap():
-    c = Cv(16, 20)
-    pts = [(10, 0), (5, 9), (9, 9), (4, 19), (12, 7), (8, 7), (12, 0)]
-    for i in range(len(pts) - 1):
-        c.line(*pts[i], *pts[i + 1], 'C')
-    for y in range(20):
-        xs = [x for x in range(16) if c.get(x, y) == 'C']
-        if len(xs) >= 2:
-            for x in range(min(xs), max(xs) + 1):
-                c.put(x, y, 'B')
-        for x in xs[:2]:
-            c.put(x, y, 'W')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.zap', 'item')(_icon_zap)
-
-
-def _icon_brand():
-    c = Cv(16, 20)
-    c.celtaper(7.5, 10, 19, 1.8, 1.4, ['m', 'M', 'n'])
-    c.rect(4, 10, 11, 11, 'M')
-    c.rect(4, 10, 11, 10, 'n')
-    for y in range(0, 11):
-        t = 1 - y / 10
-        half = 4.6 * math.sin(t * 2.1) ** 0.7 if t > 0 else 0
-        for x in range(int(round(7.5 - half)), int(round(7.5 + half)) + 1):
-            nx = (x + 0.5 - 7.5) / max(1.0, half)
-            ch = 'o' if nx < 0.45 else 'd'
-            if abs(nx) < 0.4 and y > 4:
-                ch = 'O'
-            c.put(x, y, ch)
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.brand', 'item')(_icon_brand)
-
-
-def _icon_might():
-    c = Cv(18, 18)
-    c.celsphere(8.5, 9.0, 8.4, 8.4, ['v', 'V', 'X'], lo=0.32, hi=0.72)
-    c.rect(4, 4, 5, 5, 'W')
-    c.put(12, 12, 'X')
-    c.put(6, 13, 'X')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.might', 'item')(_icon_might)
-
-
-def _icon_swift():
-    c = Cv(18, 20)
-    for t in range(120):
-        u = t / 119
-        x = 4 + u * 10
-        y = 18 - u * 16
-        wdt = 5.0 * math.sin(u * math.pi) ** 0.75
-        for j in range(int(wdt) + 1):
-            c.put(x - j * 0.9, y - j * 0.45, 'W' if j < wdt * 0.5 else 'w')
-            c.put(x + j * 0.55, y + j * 0.35, 'w' if j < wdt * 0.45 else 'a')
-    for t in range(20):
-        u = t / 19
-        c.put(4 + u * 11, 18 - u * 17, 'a')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.swift', 'item')(_icon_swift)
-
-
-def _icon_focus():
-    c = Cv(16, 20)
-    c.rect(2, 0, 13, 2, 'M')
-    c.rect(2, 0, 13, 0, 'n')
-    c.rect(2, 17, 13, 19, 'M')
-    c.rect(2, 17, 13, 17, 'n')
-    for y in range(3, 17):
-        t = abs(y - 10.0) / 7.0
-        half = 1.2 + t * 4.8
-        for x in range(int(round(7.5 - half)), int(round(7.5 + half)) + 1):
-            c.put(x, y, 'W' if abs(x - 7.5) > half - 1.4 else 'k')
-    for y in range(4, 10):
-        half = abs(y - 10.0) / 7.0 * 4.6
-        c.rect(7.5 - half, y, 7.5 + half, y, 'Y')
-    for y in range(13, 17):
-        half = abs(y - 10.0) / 7.0 * 4.2
-        c.rect(7.5 - half, y, 7.5 + half, y, 'Y')
-    c.rect(7, 10, 7, 12, 'c')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.focus', 'item')(_icon_focus)
-
-
-def _icon_area():
-    c = Cv(20, 18)
-    c.celsphere(9.5, 8.5, 9.4, 8.4, ['b', 'B', 'C'], lo=0.32, hi=0.72)
-    c.celsphere(9.5, 8.5, 5.0, 4.0, ['.', '.', '.'])
-    c.rect(4, 3, 5, 4, 'W')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.area', 'item')(_icon_area)
-
-
-def _icon_wisdom():
-    """지혜의 서 — 펼친 책. 가운데가 V로 파여야 책으로 읽힌다."""
+def _skill_tap():
+    """더블 탭 — 코만도의 기본 권총."""
     c = Cv(20, 16)
-    c.rect(1, 9, 18, 14, 'v')                    # 표지
-    c.rect(1, 9, 18, 9, 'V')
-    for side in (-1, 1):                          # 두 쪽
-        for j in range(8):
-            x = 9.5 + side * (1.2 + j)
-            top = 3 + j * 0.7
-            for y in range(int(top), 13):
-                c.put(x, y, 'W' if side < 0 else 'w')
-            c.put(x, int(top), 'W')
-    c.rect(9, 3, 10, 13, 'V')                     # 책등
-    for y, x0, x1 in ((7, 4, 7), (9, 3, 7), (7, 12, 15), (9, 12, 16)):
-        c.rect(x0, y, x1, y, 'a')
+    c.rect(3, 5, 15, 8, 'w')                      # 총열 · 몸통
+    c.rect(3, 5, 15, 5, 'W')
+    c.rect(3, 9, 8, 13, 'a')                      # 손잡이
+    c.rect(4, 9, 5, 13, 'w')
+    c.rect(15, 6, 17, 7, 'a')                     # 총구
+    c.rect(9, 9, 11, 10, 'a')                     # 방아쇠울
+    c.put(17, 6, 'Y')
     c.outline('k')
     return c.rows()
 
 
-sprite('item.wisdom', 'item')(_icon_wisdom)
+sprite('skill.tap', 'item')(_skill_tap)
+
+
+def _skill_phase():
+    """페이즈 라운드 — 벽을 뚫고 나가는 관통탄."""
+    c = Cv(20, 14)
+    for x in range(4, 18):                        # 탄자
+        t = (x - 4) / 13
+        half = 3.4 * (1 - t * 0.5)
+        for y in range(int(round(7 - half)), int(round(7 + half)) + 1):
+            c.put(x, y, 'C' if y < 7 else 'B')
+    c.rect(16, 5, 18, 8, 'W')                     # 뾰족한 끝
+    c.rect(17, 6, 19, 7, 'W')
+    for i in range(4):                            # 뒤로 끌리는 잔상
+        c.rect(0 + i, 6 + (i % 2), 3, 7 + (i % 2), 'b')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('skill.phase', 'item')(_skill_phase)
+
+
+def _skill_drone():
+    """공격 드론 — 곁을 돌며 대신 쏜다."""
+    c = Cv(18, 16)
+    c.celsphere(8.5, 8.0, 5.4, 4.6, ['a', 'w', 'W'], lo=0.32, hi=0.72)
+    c.rect(6, 6, 11, 7, 'q')                      # 앞유리
+    c.put(6, 6, 'Q')
+    for side in (-1, 1):                          # 로터 팔
+        c.rect(8.5 + side * 7, 3, 8.5 + side * 5, 3, 'w')
+        c.rect(8.5 + side * 8, 2, 8.5 + side * 4, 2, 'W')
+        c.rect(8.5 + side * 6, 3, 8.5 + side * 6, 5, 'a')
+    c.rect(7, 13, 10, 14, 'a')                    # 총열
+    c.outline('k')
+    return c.rows()
+
+
+sprite('skill.drone', 'item')(_skill_drone)
+
+
+def _skill_flame():
+    """화염 방사기 — 앞쪽을 통째로 태운다."""
+    c = Cv(20, 16)
+    c.rect(2, 6, 9, 10, 'a')                      # 연료통
+    c.rect(2, 6, 9, 6, 'w')
+    c.rect(9, 7, 12, 9, 'w')                      # 노즐
+    for i in range(7):                            # 뿜어 나오는 불
+        t = i / 6
+        h = 1 + int(t * 4)
+        for y in range(8 - h, 9 + h):
+            c.put(12 + i, y, 'o' if abs(y - 8) > h - 2 else 'O')
+    c.put(18, 8, 'c')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('skill.flame', 'item')(_skill_flame)
+
+
+def _skill_uke():
+    """우쿨렐레 — 맞은 적에서 번개가 튄다."""
+    c = Cv(18, 18)
+    c.celsphere(5.5, 12.5, 5.0, 5.0, ['m', 'M', 'n'], lo=0.32, hi=0.72)   # 울림통
+    c.celsphere(5.5, 12.0, 1.8, 1.8, ['k', 'k', 'k'])                     # 사운드 홀
+    for i in range(9):                                                    # 목
+        c.rect(6 + i * 0.7, 9 - i, 8 + i * 0.7, 10 - i, 'M')
+        c.put(6 + i * 0.7, 9 - i, 'n')
+    c.rect(12, 0, 15, 2, 'm')                                             # 머리
+    c.put(15, 0, 'M')
+    for i in range(8):                                                    # 줄
+        c.put(7 + i * 0.7, 9.5 - i, 'W')
+    for dx, dy, ch in ((14, 5, 'C'), (16, 7, 'C'), (13, 8, 'B'), (16, 10, 'C')):
+        c.put(dx, dy, ch)                                                 # 튀는 번개
+    c.outline('k')
+    return c.rows()
+
+
+sprite('skill.uke', 'item')(_skill_uke)
+
+
+def _skill_frag():
+    """파편 수류탄 — 발밑에 굴려 터뜨린다."""
+    c = Cv(16, 18)
+    c.celsphere(7.5, 11.0, 6.0, 6.4, ['g', 'G', 'j'], lo=0.32, hi=0.72)
+    for y in (7, 10, 13):                         # 파인 홈
+        c.rect(2, y, 13, y, 'g')
+    c.rect(5, 3, 9, 5, 'a')                       # 뇌관
+    c.rect(5, 3, 9, 3, 'w')
+    c.rect(9, 1, 13, 2, 'w')                      # 안전핀 고리
+    c.rect(12, 1, 13, 4, 'w')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('skill.frag', 'item')(_skill_frag)
+
+
+def _item_crowbar():
+    """크로우바 — 성한 적에게 더 큰 피해."""
+    c = Cv(18, 18)
+    for i in range(13):                           # 곧은 몸통
+        c.put(3 + i, 14 - i, 'R')
+        c.put(4 + i, 14 - i, 'r')
+        c.put(3 + i, 13 - i, 'p')
+    c.rect(1, 13, 4, 16, 'R')                     # 갈라진 발
+    c.rect(1, 13, 2, 14, 'p')
+    c.put(2, 16, 'k')
+    c.rect(13, 1, 16, 3, 'R')                     # 꺾인 끝
+    c.put(16, 1, 'p')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.crowbar', 'item')(_item_crowbar)
+
+
+def _item_hoof():
+    """폴의 염소 발굽 — 이동 속도."""
+    c = Cv(14, 18)
+    c.celtaper(7.0, 1, 9, 3.4, 4.6, ['m', 'M', 'n'])      # 털 붙은 다리
+    for y in range(3, 9, 2):                              # 털결
+        c.rect(3, y, 10, y, 'm')
+    c.celtaper(7.0, 9, 16, 5.2, 6.0, ['a', 'w', 'W'])     # 굽
+    c.rect(6, 12, 7, 17, 'k')                             # 갈라진 틈
+    c.rect(1, 16, 12, 17, 'a')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.hoof', 'item')(_item_hoof)
+
+
+def _item_infusion():
+    """주입 — 처치할수록 최대 체력이 오른다."""
+    c = Cv(16, 18)
+    c.celtaper(7.5, 4, 16, 4.6, 4.0, ['a', 'w', 'W'])
+    c.rect(4, 8, 11, 15, 'r')                     # 안에 찬 피
+    c.rect(4, 8, 5, 15, 'R')
+    c.rect(3, 2, 12, 4, 'w')                      # 뚜껑
+    c.rect(3, 2, 12, 2, 'W')
+    c.rect(5, 5, 6, 7, 'W')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.infusion', 'item')(_item_infusion)
+
+
+def _item_syringe():
+    """군인의 주사기 — 공격 속도."""
+    c = Cv(18, 18)
+    for i in range(9):                            # 몸통
+        c.rect(4 + i, 12 - i, 6 + i, 14 - i, 'W')
+        c.put(4 + i, 14 - i, 'w')
+    c.rect(2, 12, 5, 15, 'a')                     # 밀대
+    c.rect(1, 14, 4, 17, 'w')
+    for i in range(4):                            # 바늘
+        c.put(13 + i, 3 - i, 'W')
+    c.rect(7, 9, 9, 11, 'Y')                      # 약액
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.syringe', 'item')(_item_syringe)
+
+
+def _item_gasoline():
+    """휘발유 — 폭발 범위가 넓어진다."""
+    c = Cv(16, 18)
+    c.celtaper(7.5, 4, 16, 5.6, 5.6, ['d', 'o', 'O'])
+    c.rect(2, 4, 12, 4, 'O')
+    c.rect(5, 1, 9, 3, 'a')                       # 주둥이
+    c.rect(5, 1, 9, 1, 'w')
+    c.rect(10, 3, 12, 4, 'a')                     # 손잡이
+    c.rect(4, 8, 10, 12, 'k')                     # 불꽃 표식
+    c.rect(5, 9, 9, 11, 'Y')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.gasoline', 'item')(_item_gasoline)
+
+
+def _item_scanner():
+    """레이더 스캐너 — 멀리서도 주워 온다."""
+    c = Cv(18, 16)
+    c.rect(3, 11, 14, 14, 'a')                    # 받침
+    c.rect(3, 11, 14, 11, 'w')
+    c.celsphere(8.5, 6.0, 6.4, 5.4, ['a', 'w', 'W'], lo=0.34, hi=0.74,
+                clip=lambda x, y: y <= 7)
+    c.celsphere(8.5, 6.0, 4.0, 3.2, ['q', 'q', 'Q'], clip=lambda x, y: y <= 6)
+    c.rect(8, 6, 9, 11, 'w')
+    for dx, dy in ((13, 1), (15, 3), (13, 4)):    # 튀어나가는 전파
+        c.put(dx, dy, 'Q')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.scanner', 'item')(_item_scanner)
+
+
+def _item_glasses():
+    """렌즈 제작자의 안경 — 치명타 확률."""
+    c = Cv(20, 12)
+    for side in (0, 1):
+        x0 = 1 + side * 10
+        c.rect(x0, 3, x0 + 7, 9, 'a')             # 테
+        c.rect(x0 + 1, 4, x0 + 6, 8, 'C')         # 알
+        c.rect(x0 + 1, 4, x0 + 3, 5, 'W')         # 반사
+    c.rect(8, 5, 11, 6, 'a')                      # 코 다리
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.glasses', 'item')(_item_glasses)
+
+
+def _item_medkit():
+    """의료 키트 — 시간마다 체력을 회복한다."""
+    c = Cv(18, 15)
+    c.rect(1, 3, 16, 14, 'W')                             # 흰 상자
+    c.rect(1, 3, 16, 3, 'w')
+    c.rect(1, 13, 16, 14, 'a')
+    c.rect(6, 1, 11, 3, 'w')                              # 손잡이
+    c.rect(6, 1, 11, 1, 'a')
+    c.rect(4, 7, 13, 10, 'R')                             # 붉은 십자
+    c.rect(7, 5, 10, 12, 'R')
+    c.rect(4, 7, 13, 7, 'p')
+    c.rect(7, 5, 10, 5, 'p')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.medkit', 'item')(_item_medkit)
 
 
 if __name__ == '__main__':

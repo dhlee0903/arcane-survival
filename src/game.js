@@ -8,7 +8,7 @@
 
 import {
   view, PLAYER, RUN_SEC, ENEMY, SCALE, GEM, gemTier, GEM_DRIFT, GEM_CAP,
-  DROP, HEART_HEAL, POT, COIN_VALUE, xpNeed, MAX_LV, MAX_WEAPONS, MAX_PASSIVES,
+  DROP, HEART_HEAL, BARREL, COIN_VALUE, xpNeed, MAX_LV, MAX_WEAPONS, MAX_PASSIVES,
   PICK_COUNT, FX,
 } from './config.js';
 import { WEAPONS, WEAPON_IDS, statsOf, evolvableWeapon } from './weapons.js';
@@ -52,7 +52,7 @@ export class Game {
     this.faceX = 1;
     this.faceHold = 0;
     this.moving = false;
-    this.anim = new Animator('wizard.idle');
+    this.anim = new Animator('commando.idle');
 
     this.maxHp = PLAYER.hp;
     this.hp = PLAYER.hp;
@@ -67,9 +67,9 @@ export class Game {
     this.potCd = 60 * 4;    // 첫 항아리는 조금 일찍
 
     // 시작 무기는 뱀서처럼 하나만 — 나머지는 레벨업으로 얻는다
-    this.weapons = { bolt: 1 };
+    this.weapons = { tap: 1 };
     this.passives = {};
-    this.wcd = { bolt: 24 };
+    this.wcd = { tap: 24 };
     this.mods = modsOf(this.passives);
 
     this.enemies = [];
@@ -140,12 +140,12 @@ export class Game {
 
     this.movePlayer();
     this.tickWeapons();
-    this.tickRunes();
+    this.tickDrones();
     this.tickProjectiles();
     this.tickZaps();
     this.tickPatches();
     this.spawner.update(this);
-    this.tickPots();
+    this.tickBarrels();
     this.tickEnemies();
     this.tickPickups();
     this.tickParts();
@@ -180,7 +180,7 @@ export class Game {
 
     if (dx !== 0) { this.faceX = dx > 0 ? 1 : -1; this.faceHold = PLAYER.faceKeep; } else if (this.faceHold > 0) this.faceHold -= 1;
 
-    this.anim.set(this.moving ? 'wizard.walk' : 'wizard.idle');
+    this.anim.set(this.moving ? 'commando.walk' : 'commando.idle');
     this.anim.step(1);
   }
 
@@ -197,8 +197,8 @@ export class Game {
   }
 
   // 수호 룬 — 발사가 아니라 항상 돌고 있다
-  tickRunes() {
-    const id = this.weapons.sanctum ? 'sanctum' : (this.weapons.rune ? 'rune' : null);
+  tickDrones() {
+    const id = this.weapons.gauss ? 'gauss' : (this.weapons.drone ? 'drone' : null);
     if (!id) { this.orbs.length = 0; return; }
     const s = statsOf(id, this.weapons[id], this.mods);
     this.runeA = (this.runeA + s.spin) % TAU;
@@ -307,17 +307,17 @@ export class Game {
   }
 
   // 항아리는 적이 아니라 풍경에 놓인 물건이다 — 화면 근처에 띄엄띄엄 놓는다
-  tickPots() {
+  tickBarrels() {
     this.potCd -= 1;
     if (this.potCd > 0) return;
-    this.potCd = POT.every;
+    this.potCd = BARREL.every;
     let alive = 0;
     for (const e of this.enemies) if (!e.dead && e.prop) alive += 1;
-    if (alive >= POT.max) return;
+    if (alive >= BARREL.max) return;
     // 화면 안쪽 어딘가 — 너무 가까우면 지나가다 저절로 깨진다
     const a = this.rnd() * TAU;
     const d = 60 + this.rnd() * Math.min(view.w, view.h) * 0.45;
-    this.spawn('pot', { x: this.px + Math.cos(a) * d, y: this.py + Math.sin(a) * d });
+    this.spawn('barrel', { x: this.px + Math.cos(a) * d, y: this.py + Math.sin(a) * d });
   }
 
   // ---- 적 ----
@@ -423,7 +423,11 @@ export class Game {
         const rr = e.r + PLAYER.r;
         const hx = this.px - e.x;
         const hy = this.py - 6 - e.y;
-        if (hx * hx + hy * hy <= rr * rr) this.hurt(e.dmg);
+        if (hx * hx + hy * hy <= rr * rr) {
+          this.hurt(e.dmg);
+          // 해파리는 원작처럼 몸을 터뜨리고 사라진다
+          if (ENEMY[e.kind].boom) { this.spark(e.x, e.y, 18, '#c04ce0'); this.damageEnemy(e, 1e9); }
+        }
       }
 
       alive.push(e);
@@ -431,8 +435,14 @@ export class Game {
     this.enemies = alive;
   }
 
+  // 치명타는 원작처럼 피해가 두 배다(렌즈 제작자의 안경으로만 확률이 오른다)
   damageEnemy(e, dmg, opt = {}) {
     if (e.dead) return;
+    const crit = this.mods.crit > 0 && this.rnd() < this.mods.crit;
+    if (crit) {
+      dmg *= 2;
+      this.spark(e.x, e.y - e.r, 5, '#ffd23f');
+    }
     e.hp -= dmg;
     // 오라·룬처럼 계속 때리는 무기 안에 있으면 매 프레임 흰색으로 타 실루엣만 남는다.
     // 번쩍인 뒤에는 잠깐 쉬게 해서 원래 그림이 보이게 한다.
@@ -445,7 +455,7 @@ export class Game {
     }
     if (e.hp > 0) return;
     e.dead = true;
-    if (e.prop) { this.breakPot(e); return; }
+    if (e.prop) { this.breakBarrel(e); return; }
     this.kills += 1;
     this.killDrop(e);
   }
@@ -478,11 +488,11 @@ export class Game {
   }
 
   // 항아리를 부수면 자석 · 금화 · 회복 중 하나가 나온다
-  breakPot(e) {
+  breakBarrel(e) {
     this.spark(e.x, e.y, 12, '#c98f66');
     let r = this.rnd();
-    let kind = POT.loot[POT.loot.length - 1][0];
-    for (const [k, w] of POT.loot) {
+    let kind = BARREL.loot[BARREL.loot.length - 1][0];
+    for (const [k, w] of BARREL.loot) {
       if (r < w) { kind = k; break; }
       r -= w;
     }
@@ -511,7 +521,7 @@ export class Game {
     }
     const r = this.rnd();
     if (r < DROP.heartChance) this.drops.push({ kind: 'heart', x: e.x, y: e.y, life: DROP.life });
-    else if (r < DROP.heartChance + DROP.magnetChance) this.drops.push({ kind: 'magnet', x: e.x, y: e.y, life: DROP.life });
+    else if (r < DROP.heartChance + DROP.magnetChance) this.drops.push({ kind: 'scanner', x: e.x, y: e.y, life: DROP.life });
   }
 
   hurt(dmg) {
@@ -524,7 +534,7 @@ export class Game {
 
   // ---- 획득물 ----
   tickPickups() {
-    const pull = PLAYER.pickR * this.mods.magnet;
+    const pull = PLAYER.pickR * this.mods.pick;
     const keepGems = [];
     for (const g of this.gems) {
       g.t += 1;
@@ -546,7 +556,7 @@ export class Game {
         g.y += (dy / d) * 0.5;
       }
       if (d < 8) {
-        this.xp += Math.max(1, Math.round(g.xp * this.mods.wisdom));
+        this.xp += g.xp;
         continue;
       }
       keepGems.push(g);
@@ -573,7 +583,7 @@ export class Game {
     } else if (d.kind === 'heart') {
       this.hp = Math.min(this.maxHp, this.hp + HEART_HEAL);
       this.banner('회복', 60);
-    } else if (d.kind === 'magnet') {
+    } else if (d.kind === 'scanner') {
       for (const g of this.gems) g.magnet = true;
       this.banner('보석 흡수', 60);
     } else if (d.kind === 'chest') {
@@ -582,7 +592,7 @@ export class Game {
   }
 
   // 상자 — 뱀서와 같은 규칙이다.
-  //   1) 진화 조합(만렙 무기 + 지정 패시브)이 갖춰져 있으면 그 무기가 진화한다
+  //   1) 대체 스킬 조합(만렙 스킬 + 지정 아이템)이 갖춰져 있으면 그 스킬이 바뀐다
   //   2) 아니면 가진 무기 하나가 한 단계 오른다
   //   3) 전부 만렙이면 회복
   openChest() {
@@ -592,7 +602,7 @@ export class Game {
       delete this.wcd[evo.from];
       this.weapons[evo.into] = MAX_LV;
       this.wcd[evo.into] = 10;
-      this.banner(`진화 · ${WEAPONS[evo.into].name}`, 160);
+      this.banner(`대체 스킬 · ${WEAPONS[evo.into].name}`, 160);
       this.shake = Math.max(this.shake, 6);
       this.spark(this.px, this.py - 8, 40, '#ffd23f');
       return;

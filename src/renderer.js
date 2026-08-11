@@ -1,6 +1,6 @@
 // 읽기 전용 렌더러 — 1픽셀 = 1도트.
 // 모든 그림은 시작할 때 구운 **스프라이트시트 한 장**에서 잘라 쓴다(this.sheet).
-// 카메라는 항상 마법사를 화면 한가운데 둔다.
+// 카메라는 항상 코만도를 화면 한가운데 둔다.
 
 import { view, setView, PLAYER, VERSION, GEM, ENEMY, RUN_SEC, MAX_WEAPONS, MAX_PASSIVES, MAX_LV } from './config.js';
 import { evolvableWeapon } from './weapons.js';
@@ -92,7 +92,7 @@ export class Renderer {
     this.patches(c, g);
     this.gems(c, g);
     this.drops(c, g);
-    this.aura(c, g);
+    this.flameRing(c, g);
     this.actors(c, g);
     this.orbs(c, g);
     this.projectiles(c, g);
@@ -183,8 +183,8 @@ export class Renderer {
     }
   }
 
-  aura(c, g) {
-    const id = g.weapons.inferno ? 'inferno' : (g.weapons.aura ? 'aura' : null);
+  flameRing(c, g) {
+    const id = g.weapons.willowisp ? 'willowisp' : (g.weapons.flame ? 'flame' : null);
     if (!id) return;
     const s = WEAPONS[id].lv[g.weapons[id] - 1];
     const r = Math.round(s.rad * g.mods.area);
@@ -250,7 +250,7 @@ export class Renderer {
     for (let i = 0; i < n; i += 1) {
       const o = g.orbs[i];
       const a = g.runeA + (i / n) * Math.PI * 2;
-      const face = Math.abs(Math.sin(a)) > 0.42 ? 'rune.0' : 'rune.1';
+      const face = Math.abs(Math.sin(a)) > 0.42 ? 'drone.0' : 'drone.1';
       this.blit(c, face, o.x + this.ox, o.y + this.oy, { mid: true });
     }
   }
@@ -265,7 +265,7 @@ export class Renderer {
   zaps(c, g) {
     for (const z of g.zaps) {
       const a = z.t < 3 ? 1 : Math.max(0, 1 - (z.t - 3) / (z.life - 3));
-      this.blit(c, frameAt('zap', z.t), z.x + this.ox, z.y + this.oy + 4, { alpha: a });
+      this.blit(c, frameAt('uke', z.t), z.x + this.ox, z.y + this.oy + 4, { alpha: a });
       if (z.t < 4) {
         c.save();
         c.globalAlpha = 0.5;
@@ -367,10 +367,10 @@ export class Renderer {
     this.text(c, VERSION, view.w - 24, view.h - 8, 'rgba(255,255,255,.3)', 1);
   }
 
-  // 가진 아이템 — 뱀서처럼 두 줄로 나눈다. 위가 공격, 아래가 패시브.
+  // 가진 것 — 두 줄로 나눈다. 위가 스킬, 아래가 아이템.
   // 빈 칸도 그려서 앞으로 몇 개를 더 들 수 있는지 보이게 한다.
   slots(c, g) {
-    // 진화 준비가 끝난 무기는 칸을 금색으로 물들여 알려준다(상자를 열면 진화한다)
+    // 바뀔 준비가 끝난 스킬은 칸을 금색으로 물들여 알려준다(상자를 열면 바뀐다)
     const ready = evolvableWeapon(g.weapons, g.passives, MAX_LV);
     const weapons = Object.keys(g.weapons).map((id) => ({
       icon: WEAPONS[id].icon,
