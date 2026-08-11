@@ -118,13 +118,14 @@ export class Renderer {
         const wx = (left + tx) * TILE;
         const wy = (top + ty) * TILE;
         // 땅은 두 겹으로 정한다.
-        //   1) 2×2 덩어리로 뭉친 흙 — 칸마다 따로 뽑으면 얼룩처럼 흩어진다
+        //   1) 드문드문 드러난 맨흙 — 흙 타일은 가장자리에 풀색 술이 물려 있어서
+        //      한 칸씩 따로 놓아야 자연스럽다(붙여 놓으면 술이 안쪽에도 생겨 금이 보인다)
         //   2) 나머지는 서로 비슷한 잔디 네 종을 칸마다 섞는다
         // 넓은 "지대"로 묶어봤더니 색이 갈리는 자리에 사각형 경계가 그대로 드러났다.
         // 비슷한 타일을 잘게 섞는 쪽이 결이 곱고 이음새도 안 보인다.
         const cxw = left + tx;
         const cyw = top + ty;
-        const dirt = hash2(cxw >> 1, cyw >> 1) < 0.09;
+        const dirt = hash2(cxw * 5 + 3, cyw * 11 - 7) < 0.05;
         const h = hash2(cxw, cyw);
         const name = dirt ? 'tile.path' : GRASS[Math.floor(h * GRASS.length)];
         const f = this.frames[name];
@@ -217,11 +218,15 @@ export class Renderer {
     this.blit(c, g.anim.frame(), g.px + this.ox, g.py + this.oy + PLAYER.r + 2, { flip: face, tint: g.hurtCd > PLAYER.hurtCd - 6 });
   }
 
-  // 체력 막대는 머리 바로 위에 붙인다 — 멀리 띄우면 허공에 뜬 판때기처럼 보인다
+  // 체력 막대는 머리 바로 위에 붙인다 — 멀리 띄우면 허공에 뜬 판때기처럼 보인다.
+  // 높이는 지금 그려지는 프레임에서 읽는다(그림을 다시 찍어도 따라온다).
   hpBar(c, e) {
     const w = e.boss ? 30 : 18;
     const x = Math.round(e.x + this.ox - w / 2);
-    const y = Math.round(e.y + this.oy - e.r - (e.boss ? 20 : 12));
+    const f = this.frames[frameAt(ENEMY[e.kind].clip, e.t)];
+    const tall = f ? f.h / (f.art || 1) : e.r * 2;
+    // 그림은 발밑(e.y + e.r) 기준으로 그려진다 — 머리 끝은 거기서 키만큼 위다
+    const y = Math.round(e.y + this.oy + e.r - tall - 4);
     c.fillStyle = '#0b0718';
     c.fillRect(x - 1, y - 1, w + 2, 5);
     c.fillStyle = e.boss ? '#b06bff' : '#ffb03a';
