@@ -7,6 +7,7 @@ import { InputController } from './input.js';
 import { STEP_MS, MAX_CATCHUP, RUN_SEC } from './config.js';
 import { getBest, mmss, totalGold } from './storage.js';
 import { SKILLS, SKILL_IDS } from './weapons.js';
+import { ITEM_TIER } from './config.js';
 import { PASSIVES } from './upgrades.js';
 import { attachDebug } from './debug.js';
 
@@ -121,6 +122,7 @@ function loop(now) {
     acc = 0;
     prev = now;
     renderer.render(game);
+    syncTray(game.summary());
     return;
   }
   if (!prev) { prev = now; renderer.render(game); return; }
@@ -144,6 +146,7 @@ function loop(now) {
   clock.step = performance.now() - t0;
 
   renderer.render(game);
+  syncTray(game.summary());
 }
 requestAnimationFrame(loop);
 
@@ -158,3 +161,66 @@ showOverlay(
   + (totalGold() ? `<span class="dim"> · 모은 금화 ${totalGold()}</span>` : ''),
   '시작',
 );
+
+
+// ---- 하단 트레이 ----
+// 스킬은 남은 쿨타임을 초로 보여 주고, 아이템은 등급 색 테두리와 개수를 단다.
+// 툴팁은 DOM으로 두는 편이 낫다 — 캔버스에 그리면 마우스 위치를 따로 계산해야 한다.
+const skillRow = $('skillRow');
+const itemRow = $('itemRow');
+const slotCache = new Map();
+
+function makeSlot(cls, icon, title, body, key) {
+  const el = document.createElement('div');
+  el.className = 'slot';
+  el.appendChild(iconCanvas(icon, cls === 'item' ? 2 : 3));
+  if (key) {
+    const k = document.createElement('span');
+    k.className = 'key';
+    k.textContent = key;
+    el.appendChild(k);
+  }
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.innerHTML = `<b>${title}</b><span class="dim">${body}</span>`;
+  el.appendChild(tip);
+  return el;
+}
+
+function syncTray(p) {
+  if (!skillRow.childElementCount) {
+    for (const id of SKILL_IDS) {
+      const s = SKILLS[id];
+      const el = makeSlot('skill', s.icon, s.name, `${s.desc}<br>쿨타임 ${(s.cd / 60).toFixed(1)}초`, s.key);
+      const cd = document.createElement('div');
+      cd.className = 'cd';
+      cd.style.display = 'none';
+      el.appendChild(cd);
+      skillRow.appendChild(el);
+      slotCache.set(id, cd);
+    }
+  }
+  for (const id of SKILL_IDS) {
+    const left = (p.cds && p.cds[id]) || 0;
+    const cd = slotCache.get(id);
+    cd.style.display = left > 0 ? 'flex' : 'none';
+    if (left > 0) cd.textContent = (left / 60).toFixed(1);
+  }
+  const items = Object.keys(p.items || {});
+  const sig = items.map((id) => `${id}${p.items[id]}`).join(',');
+  if (itemRow.dataset.sig !== sig) {
+    itemRow.dataset.sig = sig;
+    itemRow.textContent = '';
+    for (const id of items) {
+      const it = PASSIVES[id];
+      const tier = ITEM_TIER[it.tier];
+      const el = makeSlot('item', it.icon, `${it.name} <span class="dim">· ${tier.name}</span>`, it.desc);
+      el.style.borderColor = tier.color;
+      const n = document.createElement('span');
+      n.className = 'n';
+      n.textContent = p.items[id];
+      el.appendChild(n);
+      itemRow.appendChild(el);
+    }
+  }
+}

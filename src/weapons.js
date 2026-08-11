@@ -1,7 +1,7 @@
 // 코만도의 스킬 셋 — 원작 수치를 그대로 옮겼다. **레벨업은 없다.**
 // 위력은 스킬 계수 × 캐릭터 공격력이고, 공격력은 레벨과 아이템으로만 오른다.
 //
-//   기본공격(좌클릭)  2연사        100% · 쿨타임이 공격 속도에 비례해 줄어든다
+//   기본공격(좌클릭)  2연사        두 발 · 발당 100% · 쿨타임이 공격 속도에 비례
 //   특수공격(우클릭)  위상조정탄   300% 관통 · 관통할 때마다 피해 +40% · 3초
 //   특수공격2(R)      제압사격     탄당 100% · 공격 속도만큼 발사 수가 는다 · 9초
 
@@ -12,11 +12,16 @@ export const SKILLS = {
     icon: 'skill.tap',
     desc: '적 하나를 빠르게 쏘아 100% 피해',
     coef: 1.0,
-    cd: 30,              // 스텝. 공격 속도로 나눈다
+    cd: 34,              // 스텝. 공격 속도로 나눈다
     speed: 7.2,
     r: 4,
     fire(g, dir) {
-      g.shoot(dir, { coef: this.coef, speed: this.speed, r: this.r, pierce: 0, spread: 0.05 });
+      // 이름 그대로 **두 발**이 나간다. 한꺼번에가 아니라 네 스텝 간격으로 끊어 쏜다
+      for (let i = 0; i < 2; i += 1) {
+        g.queueShot(i * 4, (gg) => {
+          gg.shoot(gg.aimDir(), { coef: this.coef, speed: this.speed, r: this.r, pierce: 0, spread: 0.05 });
+        });
+      }
     },
   },
   special: {
@@ -31,7 +36,7 @@ export const SKILLS = {
     fire(g, dir) {
       g.shoot(dir, {
         coef: this.coef, speed: this.speed, r: this.r, pierce: 99,
-        spr: 'phase', grow: 0.4, life: 130,
+        spr: 'phase', grow: 0.4, life: 130, trail: 14, trailColor: '#6fc8ff',
       });
     },
   },
@@ -51,7 +56,7 @@ export const SKILLS = {
         g.queueShot(i * 4, (gg) => {
           gg.shoot(gg.aimDir(), {
             coef: this.coef, speed: this.speed, r: this.r, pierce: 0,
-            spread: 0.16, stagger: 12,
+            spread: 0.16, stagger: 12, spr: 'bullet.orange',
           });
         });
       }

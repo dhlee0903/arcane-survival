@@ -174,3 +174,38 @@ body {
 .recipe i { font-style: normal; color: var(--accent); font-size: 10px; }
 .recipe .plus, .recipe .arrow { color: var(--faint); }
 .recipe b { color: var(--accent); margin-left: auto; }
+
+/* ---- 하단 중앙 트레이 (스킬 · 아이템) ---- */
+.tray {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  pointer-events: none; z-index: 6;
+}
+.tray-row { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; max-width: 92vw; }
+.slot {
+  position: relative; width: 40px; height: 40px; pointer-events: auto;
+  background: rgba(8, 6, 18, .82); border: 2px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+}
+.slot canvas { image-rendering: pixelated; display: block; width: auto; height: auto; }
+.slot .key {
+  position: absolute; top: -1px; left: 2px; font-size: 9px; color: var(--dim);
+}
+.slot .cd {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(4, 3, 10, .68); color: #fff; font-size: 14px; font-weight: 700;
+}
+.slot .n {
+  position: absolute; right: 1px; bottom: 0; font-size: 11px; font-weight: 700;
+  color: #ffd23f; text-shadow: 0 1px 0 #000;
+}
+.items .slot { width: 26px; height: 26px; }
+.slot .tip {
+  position: absolute; bottom: 46px; left: 50%; transform: translateX(-50%);
+  width: 190px; padding: 6px 8px; background: rgba(8, 6, 18, .96);
+  border: 1px solid var(--line); color: var(--text); font-size: 11px; line-height: 1.5;
+  opacity: 0; transition: opacity .12s; pointer-events: none; text-align: left;
+}
+.slot:hover .tip { opacity: 1; }
+.slot .tip b { display: block; margin-bottom: 2px; }
+.slot .tip .dim { color: var(--dim); }

@@ -1,6 +1,6 @@
 // 먼 곳의 횃대 — 상수 (single source of truth).
 
-export const VERSION = 'v5.0';
+export const VERSION = 'v5.1';
 
 // 로직은 초당 60회 고정. 아래 값은 모두 "1스텝(1/60초)당" 기준이다.
 export const STEP_MS = 1000 / 60;
@@ -60,7 +60,8 @@ export function xpNeed(level) {
 export const MAX_PASSIVES = 5;
 export const MAX_LV = 6;              // 스킬·아이템 공통 최대 레벨
 
-// 경험치 보석 등급 — 적 종류가 어떤 등급을 떨구는지는 ENEMY.gem.
+// (경험치 보석은 없앴다 — 처치하면 그 자리에서 경험치와 골드가 붙는다)
+// 옛 등급표 — 적 종류가 어떤 등급을 떨구는지는 ENEMY.gem.
 // 보석은 실제 경험치 값을 들고 다니고, 등급은 그 값으로 정해진다(합쳐질 수 있으므로).
 export const GEM = [
   { xp: 1, spr: 'gem.blue' },
@@ -138,7 +139,7 @@ export const SCALE = {
   dmg: (min) => 1 + min * 0.09,
 };
 
-export const MAX_ENEMIES = 165;       // 이 수를 넘으면 새로 소환하지 않는다(사건 소환은 예외)
+export const MAX_ENEMIES = 90;       // 이 수를 넘으면 새로 소환하지 않는다(사건 소환은 예외)
 
 // ---- 낙하물 ----
 export const DROP = {
@@ -160,3 +161,18 @@ export const FX = {
   shakeHurt: 5,
   shakeBoss: 8,
 };
+
+// ---- 아이템 등급 ----
+// 원작과 같다 — 일반(하양) · 레어(초록) · 전설(빨강). 테두리 색이 등급이다.
+export const ITEM_TIER = {
+  common: { name: '일반', color: '#e8eef8' },
+  rare: { name: '레어', color: '#33b558' },
+  legend: { name: '전설', color: '#e8394f' },
+};
+
+// 상자 — 등급마다 값이 다르고 나오는 아이템 등급이 다르다
+export const CHEST_TIERS = [
+  { id: 'common', price: 25, weight: 0.62 },
+  { id: 'rare', price: 60, weight: 0.30 },
+  { id: 'legend', price: 140, weight: 0.08 },
+];

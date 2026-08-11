@@ -8,7 +8,7 @@
 
 import {
   view, PLAYER, RUN_SEC, ENEMY, SCALE, GEM, gemTier, GEM_DRIFT, GEM_CAP,
-  DROP, HEART_HEAL, BARREL, COIN_VALUE, ESHOT_LIFE, xpNeed, MAX_LV, MAX_PASSIVES, FX,
+  DROP, HEART_HEAL, BARREL, COIN_VALUE, ESHOT_LIFE, xpNeed, ITEM_TIER, CHEST_TIERS, FX,
 } from './config.js';
 import { SKILLS, SKILL_IDS } from './weapons.js';
 import { modsOf, rollItem, PASSIVES } from './upgrades.js';
@@ -77,6 +77,9 @@ export class Game {
     this.cds = { primary: 0, special: 0, special2: 0, dodge: 0 };
     this.chests = [];      // 맵에 흩어진 상자 — 찾아서 골드로 연다
     this.chestCd = 60 * 8;
+    this.pops = [];        // 화면에 떠오르는 숫자(골드)
+    this.loot = [];        // 상자에서 떨어져 나와 바닥에 놓인 아이템
+    this.pickFx = [];      // 주운 아이템이 머리 위로 떴다 사라진다
     this.potCd = 60 * 4;    // 첫 항아리는 조금 일찍
 
     // 시작 무기는 뱀서처럼 하나만 — 나머지는 레벨업으로 얻는다
@@ -85,7 +88,6 @@ export class Game {
 
     this.enemies = [];
     this.projectiles = [];
-    this.gems = [];
     this.drops = [];
     this.zaps = [];
     this.patches = [];
@@ -150,6 +152,8 @@ export class Game {
     this.movePlayer();
     this.tickSkills();
     this.tickChests();
+    this.tickLoot();
+    this.tickPops();
     this.tickProjectiles();
     this.tickZaps();
     this.tickPatches();
@@ -177,6 +181,7 @@ export class Game {
       }
     }
 
+    if (this.hp > this.maxHp) this.hp = this.maxHp;
     if (this.xp >= this.xpNext) this.levelUp();
     if (this.hp <= 0) this.finish('over');
     else if (this.t >= RUN_SEC * 60) this.finish('clear');
@@ -247,7 +252,7 @@ export class Game {
     this.addProjectile({
       x: this.px, y: this.py - 8, a, speed: o.speed,
       dmg: Math.round(this.damage() * o.coef), pierce: o.pierce || 0, r: o.r,
-      clip: o.spr ? null : 'bullet', spr: o.spr, flip: Math.abs(a) > Math.PI / 2,
+      clip: o.spr ? null : 'bullet', spr: o.spr, trail: o.trail || 0, trailColor: o.trailColor, flip: Math.abs(a) > Math.PI / 2,
       life: o.life || 110, grow: o.grow || 0, stagger: o.stagger || 0,
     });
     this.muzzle = 4;
@@ -283,35 +288,67 @@ export class Game {
 
   // ---- 상자 ----
   // 원작처럼 맵에 놓여 있고, 골드가 모자라면 못 연다. 찾아다녀야 한다.
-  chestPrice() {
-    return Math.round(25 * (1 + (this.t / 3600) * 0.55));
+  rollChestTier() {
+    let r = this.rnd();
+    for (const t of CHEST_TIERS) {
+      if (r < t.weight) return t;
+      r -= t.weight;
+    }
+    return CHEST_TIERS[0];
   }
 
   tickChests() {
     this.chestCd -= 1;
-    if (this.chestCd <= 0 && this.chests.length < 4) {
-      this.chestCd = 60 * 14;
+    if (this.chestCd <= 0 && this.chests.length < 5) {
+      this.chestCd = 60 * 16;
+      const t = this.rollChestTier();
       const a = this.rnd() * TAU;
-      const d = 150 + this.rnd() * 170;
+      const d = 170 + this.rnd() * 190;
       this.chests.push({
         x: this.px + Math.cos(a) * d, y: this.py + Math.sin(a) * d,
-        price: this.chestPrice(), t: 0,
+        tier: t.id, price: Math.round(t.price * (1 + (this.t / 3600) * 0.4)),
+        open: false, t: 0,
       });
     }
     for (const c of this.chests) {
       c.t += 1;
+      if (c.open) continue;
       const dx = this.px - c.x;
       const dy = this.py - 6 - c.y;
-      if (dx * dx + dy * dy > 18 * 18) continue;
+      if (dx * dx + dy * dy > 20 * 20) continue;
       if (this.gold < c.price) { c.deny = 20; continue; }
       this.gold -= c.price;
       c.open = true;
-      const id = rollItem(this.rnd);
-      this.grantPassive(id);
-      this.banner(`${PASSIVES[id].name}`, 120);
-      this.spark(c.x, c.y, 20, '#ffd23f');
+      // 바로 먹지 않는다 — 상자 앞에 아이템이 떨어지고, 닿아야 줍는다
+      const id = rollItem(this.rnd, c.tier);
+      this.loot.push({ id, x: c.x, y: c.y + 12, t: 0 });
+      this.spark(c.x, c.y, 18, ITEM_TIER[c.tier].color);
     }
-    this.chests = this.chests.filter((c) => !c.open);
+  }
+
+  tickLoot() {
+    const keep = [];
+    for (const l of this.loot) {
+      l.t += 1;
+      const dx = this.px - l.x;
+      const dy = this.py - 6 - l.y;
+      if (dx * dx + dy * dy < 14 * 14) {
+        this.grantPassive(l.id);
+        // 주운 물건이 머리 위로 떴다 사라진다(1초)
+        this.pickFx.push({ id: l.id, t: 0, life: 60 });
+        this.banner(PASSIVES[l.id].name, 70);
+        continue;
+      }
+      keep.push(l);
+    }
+    this.loot = keep;
+  }
+
+  tickPops() {
+    for (const p of this.pops) p.t += 1;
+    this.pops = this.pops.filter((p) => p.t < p.life);
+    for (const f of this.pickFx) f.t += 1;
+    this.pickFx = this.pickFx.filter((f) => f.t < f.life);
   }
 
   addProjectile(p) {
@@ -722,8 +759,12 @@ export class Game {
     e.dead = true;
     if (e.prop) { this.breakBarrel(e); return; }
     this.kills += 1;
-    // 골드는 처치에서 나온다 — 이게 있어야 상자를 열 수 있다(원작과 같은 순환)
-    this.gold += 2 + Math.floor(this.t / 3600) + (e.elite ? 12 : 0) + (e.boss ? 60 : 0);
+    // 골드는 처치에서 나온다 — 이게 있어야 상자를 열 수 있다(원작과 같은 순환).
+    // 줍는 물건이 아니라 그 자리에서 숫자가 튀어오른다.
+    const g = 2 + Math.floor(this.t / 3600) + (e.elite ? 12 : 0) + (e.boss ? 60 : 0);
+    this.gold += g;
+    this.pops.push({ x: e.x, y: e.y - e.r, t: 0, life: 46, text: `+${g}`, color: '#ffd23f' });
+    this.xp += ENEMY[e.kind].gem * 4 + 3;
     // 몬스터의 이빨 — 처치할 때마다 작은 회복 구슬이 떨어진다
     if (this.mods.tooth > 0) {
       this.drops.push({ kind: 'tooth', x: e.x, y: e.y, life: DROP.life, heal: 6 + this.mods.tooth * 2 });
@@ -731,32 +772,9 @@ export class Game {
     this.killDrop(e);
   }
 
-  addGem(x, y, xp, spread = 0) {
-    this.gems.push({
-      x, y, xp, tier: gemTier(xp), t: 0,
-      vx: (this.rnd() - 0.5) * spread, vy: (this.rnd() - 0.5) * spread,
-    });
-    if (this.gems.length > GEM_CAP) this.mergeFarGem();
-  }
 
   // 보석이 너무 많이 깔리면 화면도 지저분하고 처리도 무겁다.
   // 가장 먼 보석을 그 다음으로 먼 보석에 합친다 — 경험치 총량은 그대로다.
-  mergeFarGem() {
-    let far = -1;
-    let second = -1;
-    let d1 = -1;
-    let d2 = -1;
-    for (let i = 0; i < this.gems.length; i += 1) {
-      const g = this.gems[i];
-      const d = (g.x - this.px) ** 2 + (g.y - this.py) ** 2;
-      if (d > d1) { d2 = d1; second = far; d1 = d; far = i; } else if (d > d2) { d2 = d; second = i; }
-    }
-    if (far < 0 || second < 0) return;
-    const g = this.gems[second];
-    g.xp += this.gems[far].xp;
-    g.tier = gemTier(g.xp);
-    this.gems.splice(far, 1);
-  }
 
   // 항아리를 부수면 자석 · 금화 · 회복 중 하나가 나온다
   breakBarrel(e) {
@@ -772,7 +790,6 @@ export class Game {
 
   killDrop(e) {
     const def = ENEMY[e.kind];
-    this.addGem(e.x, e.y, GEM[def.gem].xp, 1.2);
     this.spark(e.x, e.y, e.boss ? 40 : e.elite ? 16 : 6, e.boss ? '#b06bff' : '#ffd6a0');
 
     if (e.boss) {
@@ -782,7 +799,6 @@ export class Game {
       // 보스는 보석을 여러 개 떨군다
       for (let i = 0; i < 6; i += 1) {
         const a = this.rnd() * TAU;
-        this.addGem(e.x + Math.cos(a) * 14, e.y + Math.sin(a) * 14, GEM[2].xp);
       }
       return;
     }
@@ -812,33 +828,6 @@ export class Game {
   // ---- 획득물 ----
   tickPickups() {
     const pull = PLAYER.pickR * this.mods.pick;
-    const keepGems = [];
-    for (const g of this.gems) {
-      g.t += 1;
-      g.x += g.vx;
-      g.y += g.vy;
-      g.vx *= 0.9;
-      g.vy *= 0.9;
-      const dx = this.px - g.x;
-      const dy = this.py - 6 - g.y;
-      const d = Math.hypot(dx, dy) || 1;
-      if (g.magnet || d < pull) {
-        g.magnet = true;
-        const sp = Math.min(7, 1.6 + (pull - d) * 0.12 + g.t * 0.02);
-        g.x += (dx / d) * sp;
-        g.y += (dy / d) * sp;
-      } else if (d < GEM_DRIFT) {
-        // 흘리고 지나간 보석이 화면 밖에 쌓이지 않게 천천히 따라온다
-        g.x += (dx / d) * 0.5;
-        g.y += (dy / d) * 0.5;
-      }
-      if (d < 8) {
-        this.xp += g.xp;
-        continue;
-      }
-      keepGems.push(g);
-    }
-    this.gems = keepGems;
 
     const keepDrops = [];
     for (const d of this.drops) {
@@ -863,7 +852,6 @@ export class Game {
       this.hp = Math.min(this.maxHp, this.hp + HEART_HEAL);
       this.banner('회복', 60);
     } else if (d.kind === 'magnet') {
-      for (const g of this.gems) g.magnet = true;
       this.banner('보석 흡수', 60);
     } else if (d.kind === 'chest') {
       this.openChest();
@@ -871,11 +859,12 @@ export class Game {
   }
 
   // 엘리트·보스가 떨구는 상자는 그 자리에서 열린다(맵에 놓인 상자와 달리 공짜다)
+  // 엘리트·보스가 떨구는 상자 — 그 자리에 아이템이 떨어진다(값은 없다)
   openChest() {
-    const id = rollItem(this.rnd);
-    this.grantPassive(id);
-    this.banner(`${PASSIVES[id].name}`, 120);
-    this.spark(this.px, this.py - 8, 24, '#ffd23f');
+    const tier = this.rnd() < 0.25 ? 'legend' : 'rare';
+    const id = rollItem(this.rnd, tier);
+    this.loot.push({ id, x: this.px, y: this.py + 14, t: 0 });
+    this.spark(this.px, this.py - 8, 20, ITEM_TIER[tier].color);
   }
 
   // ---- 성장 ----
@@ -890,12 +879,12 @@ export class Game {
     this.emit();
   }
 
+  // 상한이 없다 — 종류도 개수도 무한히 쌓인다(원작과 같다)
   grantPassive(id) {
     if (!this.passives[id]) {
-      if (Object.keys(this.passives).length >= MAX_PASSIVES) return;
       this.passives[id] = 1;
     } else {
-      this.passives[id] = Math.min(MAX_LV, this.passives[id] + 1);
+      this.passives[id] += 1;
     }
     const before = this.mods.hp;
     this.mods = modsOf(this.passives);

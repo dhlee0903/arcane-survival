@@ -38,8 +38,8 @@ export const PAL = {
     i: '#1f6ad4', o: '#4fc4ff', O: '#c8f4ff', w: '#ffffff',
   },
   jelly: {
-    k: '#000000', D: '#3a1a5c', d: '#7a2ea8', m: '#c04ce0',
-    l: '#f0a8ff', q: '#3fe0ff', Q: '#d8ffff', e: '#1a0c2e',
+    k: '#000000', D: '#0d3a5c', d: '#1f7fb8', m: '#4fc4e8',
+    l: '#b8f0ff', q: '#a8f4ff', Q: '#ffffff', e: '#0a2038',
   },
   beetle: {
     k: '#000000', D: '#2a1c10', d: '#5c3d1c', m: '#96692e', l: '#c99a55',
@@ -66,7 +66,7 @@ export const PAL = {
   // 상자 — 나무 · 쇠띠 · 금자물쇠
   chest: {
     k: '#000000', D: '#2e1a06', d: '#5f380f', m: '#9c6026', l: '#d99a5a',
-    i: '#2f3742', I: '#7d8b9e', c: '#d9a01f', C: '#ffd23f',
+    i: '#2f3742', I: '#7d8b9e', c: '#d9a01f', C: '#ffd23f', Y: '#fff2b8',
   },
   rock: { k: '#000000', D: '#1b2427', d: '#3a484c', m: '#5f7276', l: '#91a4a6', g: '#2f7a33', G: '#4fb04a' },
   tuft: { k: '#000000', d: '#1f5423', m: '#357a30', l: '#5aa84a' },
@@ -76,10 +76,12 @@ export const PAL = {
   stump: { k: '#000000', D: '#2a1a08', d: '#4d3010', m: '#8a5423', l: '#c19a6b', g: '#2f7a33', G: '#4fb04a' },
   grave: { k: '#000000', D: '#1a2028', d: '#3b4551', m: '#697585', l: '#a3b0bf', g: '#2f7a33', G: '#4fb04a' },
   arcane: { k: '#000000', d: '#a8791a', m: '#ffb03a', l: '#ffe07a', w: '#ffffff' },
+  bulletBlue: { k: '#000000', d: '#1f4e9c', m: '#3f8ae8', l: '#a8dcff', w: '#ffffff' },
+  bulletOrange: { k: '#000000', d: '#a83a00', m: '#ff7a1a', l: '#ffc93f', w: '#fff2b8' },
   ember: { k: '#000000', d: '#8a2a00', m: '#ff6a1a', l: '#ffc93f', w: '#fff2b8' },
   missile: { k: '#000000', d: '#2a3040', m: '#6b7789', l: '#dbe4f2', r: '#a82a00', o: '#ff7a1a', y: '#ffd23f' },
   grenade: { k: '#000000', d: '#14400f', m: '#2f6b28', l: '#5aa84a', a: '#2a3040', w: '#8d99ad', y: '#ffd23f' },
-  frost: { k: '#000000', d: '#a83a00', m: '#ff9a1a', l: '#ffe07a', w: '#ffffff' },
+  frost: { k: '#000000', d: '#123f8c', m: '#3f8ae8', l: '#a8dcff', w: '#ffffff' },
   fire: { k: '#000000', d: '#a82a00', m: '#ff7a1a', l: '#ffd23f', w: '#fff2b8' },
   zap: { k: '#000000', d: '#2b4fb8', m: '#5f9fff', l: '#cfe6ff', w: '#ffffff' },
   // 바닥 타일 — 다섯 단이 서로 가깝다. 벌어지면 칸 경계가 드러난다
@@ -750,6 +752,31 @@ export const MAPS = {
       '..kkkkkkkkkkkkkkkkkkk.',
     ],
   },
+  'chest.open': {
+    pal: 'chest', art: 2,
+    rows: [
+      '..kkkkkkkkkkkkkkkkkkk.',
+      '.kmmIimmmmmmmdddIidddk',
+      '.kmmIimmmmmmmdddIidddk',
+      '.kmmIimmmmmmmdddIidddk',
+      '.kmmIimmmmmmmdddIidddk',
+      'kDDDIiDDDDDDDDDDIiDDDD',
+      'kDDDDDDDDDDDDDDDDDDDDk',
+      '.kkkkkkkkkkkkkkkkkkkkk',
+      'kmmmIimmmmmmmdddIidddd',
+      'kmYYYYYYYYYYYYYYYYYYdd',
+      'kmCCCCCCCCCCCCCCCCCCdd',
+      'kmCCCCCCCCCCCCCCCCCCdd',
+      'kDmmIimmmmmmmdddIidddD',
+      '.kmmIimmmmmmmdddIidddk',
+      '.kmmIimmmmmmmdddIidddk',
+      '.kmmIimmmmmmmdddIidddk',
+      '.kmmIimmmmmmmdddIidddk',
+      '.kmmIimmmmmmmdddIidddk',
+      '.kDDIiDDDDDDDDDDIiDDDk',
+      '..kkkkkkkkkkkkkkkkkkk.',
+    ],
+  },
   // 배럴 — 부수면 금화 · 회복 · 자석이 나온다
   'barrel': {
     pal: 'barrel', art: 2,
@@ -1111,14 +1138,23 @@ export const MAPS = {
       '.kkkkkkkkkkk.',
     ],
   },
+  'bullet.orange': {
+    pal: 'bulletOrange', art: 2,
+    rows: [
+      '.kkkkkkkkkkkk.',
+      'kddddmmmwwlwwk',
+      'kdddddddlllwwk',
+      '.kkkkkkkkkkkk.',
+    ],
+  },
   'phase': {
     pal: 'frost', art: 2,
     rows: [
-      '.......kkkkkkkkkkkkkk.',
-      'kkkkkkkmmmmmllllllwwwk',
-      'dddddmmmmlllmmmmmmwwww',
-      'kkkkkkkdddddmmmmmmwwwk',
-      '.......kkkkkkkkkkkkkk.',
+      '..........kkkkkkkkkkkkk.',
+      'kkkkkkkkkklllllllllwwwwk',
+      'ddddmmmlllmmmmmmmmmwwwww',
+      'kkkkkkkkkkmmmmmmmmmwwwwk',
+      '..........kkkkkkkkkkkkk.',
     ],
   },
   'missile': {

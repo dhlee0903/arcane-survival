@@ -168,8 +168,8 @@ sprite('wisp.1', 'wisp')(lambda: _wisp(1))
 # ============================ 해파리 ============================
 # 둥실 떠다니다 몸을 부풀려 터진다. 촉수가 파랗게 빛난다.
 PAL['jelly'] = {
-    'k': K, 'D': '#3a1a5c', 'd': '#7a2ea8', 'm': '#c04ce0', 'l': '#f0a8ff',
-    'q': '#3fe0ff', 'Q': '#d8ffff', 'e': '#1a0c2e',
+    'k': K, 'D': '#0d3a5c', 'd': '#1f7fb8', 'm': '#4fc4e8', 'l': '#b8f0ff',
+    'q': '#a8f4ff', 'Q': '#ffffff', 'e': '#0a2038',
 }
 
 
@@ -445,31 +445,41 @@ sprite('barrel', 'barrel')(_barrel)
 
 
 PAL['chest'] = {'k': K, 'D': '#2e1a06', 'd': '#5f380f', 'm': '#9c6026', 'l': '#d99a5a',
-                'i': '#2f3742', 'I': '#7d8b9e', 'c': '#d9a01f', 'C': '#ffd23f'}
+                'i': '#2f3742', 'I': '#7d8b9e', 'c': '#d9a01f', 'C': '#ffd23f', 'Y': '#fff2b8'}
 
 
-def _chest():
+def _chest(open_=False):
+    """상자 — 둥둥 뜨지 않고 바닥에 놓인다. 열리면 뚜껑이 젖혀지고 속이 빛난다."""
     c = Cv(22, 20)
-    c.celsphere(11.0, 9.0, 9.6, 7.0, ['d', 'm', 'l'], lo=0.32, hi=0.74,
-                clip=lambda x, y: y <= 9)
-    c.rect(1, 10, 20, 10, 'D')
-    c.celtaper(11.0, 11, 18, 9.8, 9.2, ['d', 'm', 'l'])
-    for bx in (4, 16):                            # 쇠띠
-        for y in range(2, 19):
+    if open_:
+        # 젖혀진 뚜껑
+        c.celtaper(11.0, 1, 5, 8.6, 9.6, ['d', 'm', 'l'])
+        c.rect(1, 6, 20, 6, 'D')
+        c.celtaper(11.0, 8, 18, 9.8, 9.2, ['d', 'm', 'l'])
+        c.rect(2, 9, 19, 11, 'C')                  # 속에서 새는 빛
+        c.rect(2, 9, 19, 9, 'Y')
+    else:
+        c.celsphere(11.0, 9.0, 9.6, 7.0, ['d', 'm', 'l'], lo=0.32, hi=0.74,
+                    clip=lambda x, y: y <= 9)
+        c.rect(1, 10, 20, 10, 'D')
+        c.celtaper(11.0, 11, 18, 9.8, 9.2, ['d', 'm', 'l'])
+        c.rect(10, 8, 12, 14, 'c')                 # 자물쇠
+        c.rect(10, 8, 10, 14, 'C')
+        c.rect(10, 8, 12, 8, 'C')
+        c.put(11, 11, 'k')
+    for bx in (4, 16):                             # 쇠띠
+        for y in range(1, 19):
             if c.get(bx, y) in 'dml':
                 c.put(bx, y, 'I')
             if c.get(bx + 1, y) in 'dml':
                 c.put(bx + 1, y, 'i')
-    c.rect(10, 8, 12, 14, 'c')                    # 자물쇠
-    c.rect(10, 8, 10, 14, 'C')
-    c.rect(10, 8, 12, 8, 'C')
-    c.put(11, 11, 'k')
     c.ao('D', 'dm')
     c.outline('k')
     return c.rows()
 
 
-sprite('chest', 'chest')(_chest)
+sprite('chest', 'chest')(lambda: _chest(False))
+sprite('chest.open', 'chest')(lambda: _chest(True))
 
 
 # ============================ 배경 장식 ============================
@@ -603,6 +613,8 @@ sprite('grave', 'grave')(_grave)
 
 # ============================ 투사체 ============================
 PAL['arcane'] = {'k': K, 'd': '#a8791a', 'm': '#ffb03a', 'l': '#ffe07a', 'w': '#ffffff'}
+PAL['bulletBlue'] = {'k': K, 'd': '#1f4e9c', 'm': '#3f8ae8', 'l': '#a8dcff', 'w': '#ffffff'}
+PAL['bulletOrange'] = {'k': K, 'd': '#a83a00', 'm': '#ff7a1a', 'l': '#ffc93f', 'w': '#fff2b8'}
 
 
 def _bullet(step):
@@ -620,6 +632,7 @@ def _bullet(step):
 
 sprite('bullet.0', 'arcane')(lambda: _bullet(0))
 sprite('bullet.1', 'arcane')(lambda: _bullet(1))
+sprite('bullet.orange', 'bulletOrange')(lambda: _bullet(0))
 
 
 
@@ -700,21 +713,18 @@ def _grenade():
 sprite('grenade', 'grenade')(_grenade)
 
 
-PAL['frost'] = {'k': K, 'd': '#a83a00', 'm': '#ff9a1a', 'l': '#ffe07a', 'w': '#ffffff'}
+PAL['frost'] = {'k': K, 'd': '#123f8c', 'm': '#3f8ae8', 'l': '#a8dcff', 'w': '#ffffff'}
 
 
 def _shard():
-    """페이즈 라운드 — 길게 늘어난 관통탄. 지나간 자리에 잔상이 남는다."""
-    c = Cv(22, 7)
-    c.rect(12, 2, 19, 4, 'm')
-    c.rect(12, 2, 19, 2, 'l')
-    c.rect(18, 2, 20, 4, 'w')                 # 뜨거운 앞머리
-    c.put(21, 3, 'w')
-    for i in range(12):                       # 뒤로 끌리는 잔상
-        c.put(11 - i, 3, 'l' if i < 3 else ('m' if i < 7 else 'd'))
-        if i < 5:
-            c.put(11 - i, 2, 'm')
-            c.put(11 - i, 4, 'd')
+    """위상조정탄 — 파랗고 길다. 궤적은 렌더러가 따로 그린다."""
+    c = Cv(24, 7)
+    c.rect(10, 2, 21, 4, 'm')
+    c.rect(10, 2, 21, 2, 'l')
+    c.rect(19, 2, 22, 4, 'w')
+    c.put(23, 3, 'w')
+    for i in range(10):
+        c.put(9 - i, 3, 'l' if i < 3 else ('m' if i < 6 else 'd'))
     c.outline('k')
     return c.rows()
 

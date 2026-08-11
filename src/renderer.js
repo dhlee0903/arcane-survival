@@ -2,7 +2,7 @@
 // 모든 그림은 시작할 때 구운 **스프라이트시트 한 장**에서 잘라 쓴다(this.sheet).
 // 카메라는 항상 코만도를 화면 한가운데 둔다.
 
-import { view, setView, PLAYER, VERSION, GEM, ENEMY, RUN_SEC, MAX_PASSIVES, MAX_LV } from './config.js';
+import { view, setView, PLAYER, VERSION, ENEMY, RUN_SEC, ITEM_TIER } from './config.js';
 import { SKILLS, SKILL_IDS } from './weapons.js';
 import { buildSheet, FONT } from './sprites.js';
 import { frameAt } from './anim.js';
@@ -89,7 +89,6 @@ export class Renderer {
 
     this.ground(c, g);
     this.patches(c, g);
-    this.gems(c, g);
     this.drops(c, g);
     this.actors(c, g);
     this.projectiles(c, g);
@@ -168,12 +167,6 @@ export class Renderer {
     }
   }
 
-  gems(c, g) {
-    for (const gem of g.gems) {
-      const bob = Math.sin(gem.t * 0.14) * 1.2;
-      this.blit(c, GEM[gem.tier].spr, gem.x + this.ox, gem.y + this.oy + bob, { mid: true });
-    }
-  }
 
   drops(c, g) {
     for (const d of g.drops) {
@@ -241,10 +234,32 @@ export class Renderer {
 
   // 룬은 공전 각도에 맞춰 앞면/옆면을 고른다 — 돌아가는 동전처럼 보이게
 
+  // 총알은 **날아가는 방향으로 돌려서** 그린다. 가로로만 뒤집으면 위아래로 쏠 때 어색하다.
   projectiles(c, g) {
     for (const p of g.projectiles) {
       const name = p.spr || frameAt(p.clip, p.t);
-      this.blit(c, name, p.x + this.ox, p.y + this.oy, { mid: true, flip: p.flip });
+      const f = this.frames[name];
+      if (!f) continue;
+      const a = Math.atan2(p.vy, p.vx);
+      if (p.trail) {                            // 위상조정탄 — 긴 궤적
+        c.save();
+        c.globalAlpha = 0.5;
+        c.strokeStyle = p.trailColor || '#6fc8ff';
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(p.x + this.ox, p.y + this.oy);
+        c.lineTo(p.x + this.ox - Math.cos(a) * p.trail * 2, p.y + this.oy - Math.sin(a) * p.trail * 2);
+        c.stroke();
+        c.restore();
+      }
+      const art = f.art || 1;
+      c.save();
+      c.translate(Math.round(p.x + this.ox), Math.round(p.y + this.oy));
+      c.rotate(a);
+      c.imageSmoothingEnabled = false;
+      c.drawImage(this.sheet, f.x, f.y, f.w, f.h,
+        -f.w / art / 2, -f.h / art / 2, f.w / art, f.h / art);
+      c.restore();
     }
   }
 
@@ -288,11 +303,47 @@ export class Renderer {
       const x = ch.x + this.ox;
       const y = ch.y + this.oy;
       this.shadow(c, x, y, 10);
-      this.blit(c, 'chest', x, y + Math.sin(ch.t * 0.05) * 0.5);
+      this.blit(c, ch.open ? 'chest.open' : 'chest', x, y);
+      // 등급은 테두리 색으로 알린다
+      const tone = ITEM_TIER[ch.tier].color;
+      c.strokeStyle = tone;
+      c.globalAlpha = 0.75;
+      c.lineWidth = 1;
+      c.strokeRect(Math.round(x) - 6.5, Math.round(y) - 11.5, 13, 12);
+      c.globalAlpha = 1;
+      if (ch.open) continue;
       const enough = g.gold >= ch.price;
       const label = `$${ch.price}`;
       this.text(c, label, Math.round(x - label.length * 3), Math.round(y - 24),
         enough ? '#ffd23f' : '#ff6a6a', 1);
+    }
+    // 바닥에 놓인 아이템 — 닿으면 줍는다
+    for (const l of g.loot) {
+      const x = l.x + this.ox;
+      const y = l.y + this.oy + Math.sin(l.t * 0.08) * 1.5;
+      const tone = ITEM_TIER[PASSIVES[l.id].tier].color;
+      c.save();
+      c.globalAlpha = 0.35 + Math.sin(l.t * 0.1) * 0.12;
+      ellipse(c, x, l.y + this.oy + 3, 9, 4, tone);
+      c.restore();
+      this.blit(c, PASSIVES[l.id].icon, x, y, { mid: true });
+    }
+    // 골드 숫자
+    for (const p of g.pops) {
+      const u = p.t / p.life;
+      c.save();
+      c.globalAlpha = 1 - u * u;
+      this.text(c, p.text, Math.round(p.x + this.ox - p.text.length * 3),
+        Math.round(p.y + this.oy - 6 - u * 14), p.color, 1);
+      c.restore();
+    }
+    // 주운 아이템 — 머리 위로 떠올랐다 사라진다
+    for (const f of g.pickFx) {
+      const u = f.t / f.life;
+      c.save();
+      c.globalAlpha = 1 - u;
+      this.blit(c, PASSIVES[f.id].icon, g.px + this.ox, g.py + this.oy - 22 - u * 16, { mid: true });
+      c.restore();
     }
   }
 
@@ -408,7 +459,7 @@ export class Renderer {
     c.fillRect(4, 18, hw + 4, 10);
     c.fillStyle = '#241c3a';
     c.fillRect(5, 19, hw + 2, 8);
-    const fill = Math.max(0, Math.round((g.hp / g.maxHp) * hw));
+    const fill = Math.max(0, Math.min(hw, Math.round((g.hp / g.maxHp) * hw)));
     c.fillStyle = low ? '#c41f36' : '#1f9e46';
     c.fillRect(6, 20, fill, 6);
     c.fillStyle = low ? '#ff5a63' : '#3fce6a';
@@ -423,76 +474,9 @@ export class Renderer {
     this.blit(c, 'coin', 8, 45, { mid: true });
     this.text(c, String(g.gold), 14, 42, '#ffd23f', 1);
 
-    this.slots(c, g);
     this.text(c, VERSION, view.w - 24, view.h - 8, 'rgba(255,255,255,.3)', 1);
   }
 
-  // 아래 줄 — 왼쪽에 스킬 셋(쿨타임이 차오른다), 오른쪽에 주운 아이템.
-  slots(c, g) {
-    const y = view.h - SLOT - 4;
-    for (let i = 0; i < SKILL_IDS.length; i += 1) {
-      const id = SKILL_IDS[i];
-      const s = SKILLS[id];
-      const x = 4 + i * (SLOT + 2);
-      const cd = g.cds ? g.cds[id] : 0;
-      const full = id === 'primary' ? Math.max(6, Math.round(s.cd / (g.atkSpeed ? g.atkSpeed() : 1))) : s.cd;
-      c.fillStyle = 'rgba(11,7,24,.8)';
-      c.fillRect(x, y, SLOT, SLOT);
-      this.blit(c, s.icon, x + SLOT / 2, y + SLOT / 2, { mid: true });
-      if (cd > 0) {                              // 아직 안 찼으면 아래에서부터 덮는다
-        const h = Math.round((cd / full) * SLOT);
-        c.fillStyle = 'rgba(4,3,10,.72)';
-        c.fillRect(x, y, SLOT, h);
-      }
-      c.strokeStyle = cd > 0 ? 'rgba(255,255,255,.2)' : '#7ff0ff';
-      c.lineWidth = 1;
-      c.strokeRect(x + 0.5, y + 0.5, SLOT - 1, SLOT - 1);
-    }
-    // 회피
-    const dx = 4 + SKILL_IDS.length * (SLOT + 2) + 4;
-    c.fillStyle = 'rgba(11,7,24,.8)';
-    c.fillRect(dx, y, SLOT, SLOT);
-    if (g.cds && g.cds.dodge > 0) {
-      c.fillStyle = 'rgba(4,3,10,.72)';
-      c.fillRect(dx, y, SLOT, Math.round((g.cds.dodge / PLAYER.dodgeCd) * SLOT));
-    }
-    c.strokeStyle = g.cds && g.cds.dodge > 0 ? 'rgba(255,255,255,.2)' : '#7ff0ff';
-    c.strokeRect(dx + 0.5, y + 0.5, SLOT - 1, SLOT - 1);
-    this.text(c, 'SH', dx + 2, y + 4, '#cfd8e8', 1);
-
-    // 주운 아이템 — 오른쪽 아래에 늘어놓는다
-    const items = Object.keys(g.passives);
-    for (let i = 0; i < items.length; i += 1) {
-      const x = view.w - 4 - (items.length - i) * (SLOT + 1);
-      c.fillStyle = 'rgba(11,7,24,.8)';
-      c.fillRect(x, y, SLOT, SLOT);
-      c.strokeStyle = '#ffb03a';
-      c.lineWidth = 1;
-      c.strokeRect(x + 0.5, y + 0.5, SLOT - 1, SLOT - 1);
-      this.blit(c, PASSIVES[items[i]].icon, x + SLOT / 2, y + SLOT / 2, { mid: true });
-      c.fillStyle = 'rgba(11,7,24,.85)';
-      c.fillRect(x + SLOT - 6, y + SLOT - 8, 6, 8);
-      this.text(c, String(g.passives[items[i]]), x + SLOT - 5, y + SLOT - 7, '#ffd23f', 1);
-    }
-  }
-
-  slotRow(c, y, cap, items, tone) {
-    for (let i = 0; i < cap; i += 1) {
-      const x = 4 + i * (SLOT + 1);
-      const it = items[i];
-      c.fillStyle = it ? 'rgba(11,7,24,.8)' : 'rgba(11,7,24,.35)';
-      c.fillRect(x, y, SLOT, SLOT);
-      c.strokeStyle = it ? (it.hot ? '#ffd23f' : tone) : 'rgba(255,255,255,.12)';
-      c.lineWidth = 1;
-      c.strokeRect(x + 0.5, y + 0.5, SLOT - 1, SLOT - 1);
-      if (!it) continue;
-      this.blit(c, it.icon, x + SLOT / 2, y + SLOT / 2, { mid: true });
-      // 레벨은 오른쪽 아래 구석에. 그림 위에 얹히므로 바탕을 깔아 읽히게 한다.
-      c.fillStyle = 'rgba(11,7,24,.85)';
-      c.fillRect(x + SLOT - 6, y + SLOT - 8, 6, 8);
-      this.text(c, String(it.lv), x + SLOT - 5, y + SLOT - 7, it.lv >= MAX_LV ? '#ffd23f' : '#cfc6f5', 1);
-    }
-  }
 
   // 5×7 비트맵 글꼴. 한글 문구는 DOM 오버레이가 맡는다.
   // HUD 글씨는 그림자를 한 겹 깔고 찍는다 — 밝은 바닥 위에서도 글자가 뭉개지지 않는다
