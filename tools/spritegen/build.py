@@ -92,12 +92,13 @@ ORDER = [
     ('// ---- 부술 수 있는 물건 ----', ['chest', 'barrel']),
     ('// ---- 배경 장식 ----', ['rock', 'tuft', 'mushroom', 'flower', 'bones', 'stump', 'grave']),
     ('// ---- 바닥 타일 ----', ['tile.grass0', 'tile.grass1', 'tile.moss0', 'tile.moss1', 'tile.path']),
-    ('// ---- 투사체 ----', ['bullet.0', 'bullet.1', 'phase', 'drone.0', 'drone.1',
+    ('// ---- 투사체 ----', ['bullet.0', 'bullet.1', 'phase', 'missile', 'grenade',
                           'flame.0', 'flame.1', 'flame.2', 'zap.0', 'zap.1']),
+    ('// ---- 적이 쏘는 것 ----', ['ember', 'spit']),
     ('// ---- 스킬 · 아이템 아이콘 ----',
-     ['skill.tap', 'skill.phase', 'skill.drone', 'skill.flame', 'skill.uke', 'skill.frag',
-      'item.crowbar', 'item.hoof', 'item.infusion', 'item.syringe', 'item.gasoline',
-      'item.scanner', 'item.glasses', 'item.medkit']),
+     ['skill.tap', 'skill.phase', 'skill.suppress', 'skill.frag', 'skill.dive',
+      'item.crowbar', 'item.hoof', 'item.bear', 'item.syringe', 'item.ukulele',
+      'item.atg', 'item.glasses', 'item.tooth']),
 ]
 LIFT = {'wisp.0': 1, 'wisp.1': 0, 'jellyfish.0': 1, 'jellyfish.1': 0,
         'lemurian.0': 0, 'lemurian.1': 1, 'beetle.0': 0, 'beetle.1': 1,
@@ -114,7 +115,8 @@ NOTE = {
     'barrel': '  // 배럴 — 부수면 금화 · 회복 · 자석이 나온다',
     'tile.grass0': '  // 잡티를 칸마다 흩뿌리면 노이즈로 보인다. 덩어리로 뭉치고 결을 넣어야 땅이 된다.\n'
                    '  // 가장자리는 기본색만 남겨 이웃 타일과의 이음새를 감춘다.',
-    'bullet.0': '  // 더블 탭 탄 — 어느 방향으로 날아가도 같게 보이도록 둥글게 그렸다',
+    'bullet.0': '  // 예광탄 — 총알은 길쭉해야 총알로 읽힌다. 나가는 방향으로 뒤집어 쓴다',
+    'ember': '  // 적탄은 주황으로 통일했다 — 내 탄(노랑)과 색이 겹치면 피할 수가 없다',
     'skill.tap': '  // HUD 칸(11도트)에 맞춰 규격을 통일한다. flat이라 아랫줄을 더 두지 않는다.',
 }
 

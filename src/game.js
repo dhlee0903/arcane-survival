@@ -8,8 +8,8 @@
 
 import {
   view, PLAYER, RUN_SEC, ENEMY, SCALE, GEM, gemTier, GEM_DRIFT, GEM_CAP,
-  DROP, HEART_HEAL, BARREL, COIN_VALUE, xpNeed, MAX_LV, MAX_WEAPONS, MAX_PASSIVES,
-  PICK_COUNT, FX,
+  DROP, HEART_HEAL, BARREL, COIN_VALUE, ESHOT_LIFE, xpNeed, MAX_LV, MAX_WEAPONS,
+  MAX_PASSIVES, PICK_COUNT, FX,
 } from './config.js';
 import { WEAPONS, WEAPON_IDS, statsOf, evolvableWeapon } from './weapons.js';
 import { modsOf, rollChoices } from './upgrades.js';
@@ -64,6 +64,15 @@ export class Game {
     this.xpNext = xpNeed(1);
     this.kills = 0;
     this.gold = 0;
+    this.eshots = [];      // 적이 쏜 것 — 맞으면 아프다
+    this.beams = [];       // 타이탄 광선 · 잠깐 그려지고 사라진다
+    this.diveT = 0;        // 택티컬 다이브 — 구르는 동안 무적
+    this.diveVx = 0;
+    this.diveVy = 0;
+    this.diveDmg = 0;
+    this.muzzle = 0;       // 총구 화염
+    this.queue = [];       // 몇 스텝 뒤에 나갈 사격(더블 탭 · 제압 사격)
+    this.grenades = [];
     this.potCd = 60 * 4;    // 첫 항아리는 조금 일찍
 
     // 시작 무기는 뱀서처럼 하나만 — 나머지는 레벨업으로 얻는다
@@ -79,8 +88,6 @@ export class Game {
     this.zaps = [];
     this.patches = [];
     this.parts = [];
-    this.orbs = [];
-    this.runeA = 0;
     this.auraPulse = 0;
 
     this.god = false;       // 디버그 콘솔에서만 켠다
@@ -140,13 +147,15 @@ export class Game {
 
     this.movePlayer();
     this.tickWeapons();
-    this.tickDrones();
     this.tickProjectiles();
     this.tickZaps();
     this.tickPatches();
     this.spawner.update(this);
     this.tickBarrels();
     this.tickEnemies();
+    this.tickEnemyShots();
+    this.tickQueue();
+    this.tickGrenades();
     this.tickPickups();
     this.tickParts();
 
@@ -154,6 +163,7 @@ export class Game {
     if (this.shake > 0) this.shake = Math.max(0, this.shake - 0.35);
     if (this.auraPulse > 0) this.auraPulse -= 1;
     if (this.hurtCd > 0) this.hurtCd -= 1;
+    if (this.muzzle > 0) this.muzzle -= 1;
 
     // 재생
     if (this.mods.regen > 0 && this.hp > 0) {
@@ -171,6 +181,29 @@ export class Game {
   }
 
   movePlayer() {
+    // 구르는 중에는 입력을 무시하고 구르기가 민다
+    if (this.diveT > 0) {
+      this.diveT -= 1;
+      this.px += this.diveVx;
+      this.py += this.diveVy;
+      this.diveVx *= 0.9;
+      this.diveVy *= 0.9;
+      if (this.diveDmg > 0) {
+        for (const e of this.enemies) {
+          if (e.dead || e.prop || e.hitByDive) continue;
+          const ddx = e.x - this.px;
+          const ddy = e.y - this.py + 6;
+          const rr = e.r + PLAYER.r + 6;
+          if (ddx * ddx + ddy * ddy > rr * rr) continue;
+          e.hitByDive = true;
+          this.damageEnemy(e, this.diveDmg, { knock: 3, kx: ddx, ky: ddy });
+        }
+      }
+      if (this.diveT % 3 === 0) this.spark(this.px, this.py, 3, '#cfd8e8');
+      this.anim.set('commando.walk');
+      this.anim.step(2);
+      return;
+    }
     const sp = PLAYER.speed * this.mods.speed;
     const dx = (this.inx || 0) * sp;
     const dy = (this.iny || 0) * sp;
@@ -191,37 +224,14 @@ export class Game {
       const s = statsOf(id, this.weapons[id], this.mods);
       this.wcd[id] = (this.wcd[id] || 0) - 1;
       if (this.wcd[id] > 0) continue;
+      // 조건이 붙은 스킬(택티컬 다이브)은 쓸 상황이 아니면 대기시간을 소모하지 않는다
+      if (def.ready && !def.ready(this, s)) { this.wcd[id] = 6; continue; }
       this.wcd[id] = s.cd;
       def.fire(this, s);
     }
   }
 
   // 수호 룬 — 발사가 아니라 항상 돌고 있다
-  tickDrones() {
-    const id = this.weapons.gauss ? 'gauss' : (this.weapons.drone ? 'drone' : null);
-    if (!id) { this.orbs.length = 0; return; }
-    const s = statsOf(id, this.weapons[id], this.mods);
-    this.runeA = (this.runeA + s.spin) % TAU;
-    this.orbs.length = 0;
-    for (let i = 0; i < s.n; i += 1) {
-      const a = this.runeA + (i / s.n) * TAU;
-      this.orbs.push({ x: this.px + Math.cos(a) * s.rad, y: this.py - 6 + Math.sin(a) * s.rad * 0.72, r: 7 });
-    }
-    for (const e of this.enemies) {
-      if (e.dead) continue;
-      if (e.runeCd > 0) { e.runeCd -= 1; continue; }
-      for (const o of this.orbs) {
-        const dx = e.x - o.x;
-        const dy = e.y - o.y;
-        const rr = o.r + e.r;
-        if (dx * dx + dy * dy <= rr * rr) {
-          this.damageEnemy(e, s.dmg, { knock: 2.4, kx: dx, ky: dy });
-          e.runeCd = 26;
-          break;
-        }
-      }
-    }
-  }
 
   addProjectile(p) {
     this.projectiles.push({
@@ -235,6 +245,20 @@ export class Game {
   }
 
   tickProjectiles() {
+    // AtG 미사일은 목표를 향해 휜다
+    for (const p of this.projectiles) {
+      if (!p.homing) continue;
+      const t = this.enemies.find((e) => e.id === p.target && !e.dead)
+        || this.nearestEnemies(p.x, p.y, 400, 1)[0];
+      if (!t) continue;
+      const a = Math.atan2(t.y - p.y, t.x - p.x);
+      const sp = Math.hypot(p.vx, p.vy) || 2.6;
+      p.vx += (Math.cos(a) * sp - p.vx) * p.homing;
+      p.vy += (Math.sin(a) * sp - p.vy) * p.homing;
+      const n = Math.hypot(p.vx, p.vy) || 1;
+      p.vx = (p.vx / n) * 2.8;
+      p.vy = (p.vy / n) * 2.8;
+    }
     const keep = [];
     for (const p of this.projectiles) {
       p.x += p.vx;
@@ -251,6 +275,7 @@ export class Game {
           const rr = p.r + e.r;
           if (dx * dx + dy * dy > rr * rr) continue;
           this.damageEnemy(e, p.dmg, { knock: 2.6, kx: p.vx, ky: p.vy });
+          if (p.stagger) e.stun = Math.max(e.stun || 0, p.stagger);
           if (p.pierce > 0) {
             p.pierce -= 1;
             if (!p.hits) p.hits = new Set();
@@ -321,6 +346,162 @@ export class Game {
   }
 
   // ---- 적 ----
+  // 몇 스텝 뒤에 나갈 사격을 담아 둔다. 한꺼번에 뿌리지 않고 끊어 쏘는 스킬(더블 탭 ·
+  // 제압 사격)이 원작처럼 "타타타" 나가게 하는 장치다.
+  queueShot(delay, fn) {
+    this.queue.push({ t: delay, fn });
+  }
+
+  tickQueue() {
+    if (!this.queue.length) return;
+    const rest = [];
+    for (const q of this.queue) {
+      if (q.t > 0) { q.t -= 1; rest.push(q); continue; }
+      q.fn(this);
+    }
+    this.queue = rest;
+  }
+
+  // 수류탄 — 던진 자리로 날아가 떨어지고, 터진 자리에 불이 남는다
+  tickGrenades() {
+    const alive = [];
+    for (const gr of this.grenades) {
+      gr.t += 1;
+      const u = Math.min(1, gr.t / gr.fall);
+      gr.px = gr.x + (gr.tx - gr.x) * u;
+      gr.py = gr.y + (gr.ty - gr.y) * u - Math.sin(u * Math.PI) * 26;   // 포물선
+      if (u < 1) { alive.push(gr); continue; }
+      for (const e of this.enemies) {
+        if (e.dead || e.prop) continue;
+        const dx = e.x - gr.tx;
+        const dy = e.y - gr.ty;
+        const rr = gr.rad + e.r;
+        if (dx * dx + dy * dy > rr * rr) continue;
+        this.damageEnemy(e, gr.dmg, { knock: 3.4, kx: dx, ky: dy });
+      }
+      this.patches.push({ x: gr.tx, y: gr.ty, r: gr.rad, dmg: gr.burn, life: gr.life, t: 0, tick: 0 });
+      this.spark(gr.tx, gr.ty, 16, '#ffb03a');
+      this.shake = Math.max(this.shake, 4);
+    }
+    this.grenades = alive;
+  }
+
+  // 택티컬 다이브 — 적 반대쪽으로 굴러 빠져나간다. 구르는 동안 무적
+  startDive(s) {
+    const near = this.nearestEnemies(this.px, this.py, 200, 3);
+    let ax = 0;
+    let ay = 0;
+    for (const e of near) {
+      const d = Math.hypot(e.x - this.px, e.y - this.py) || 1;
+      ax -= (e.x - this.px) / d;
+      ay -= (e.y - this.py) / d;
+    }
+    if (ax === 0 && ay === 0) { ax = this.faceX; ay = 0; }
+    const n = Math.hypot(ax, ay) || 1;
+    this.diveT = s.dur;
+    this.diveVx = (ax / n) * (s.dist / s.dur) * 2;
+    this.diveVy = (ay / n) * (s.dist / s.dur) * 2;
+    this.diveDmg = s.dmg;
+    for (const e of this.enemies) e.hitByDive = false;
+    this.banner('회피', 20);
+  }
+
+  // 아이템 프록 — 우쿨렐레(연쇄 번개)와 AtG(유도 미사일)
+  procItems(e, dmg) {
+    if (this.mods.uke > 0 && this.rnd() < 0.25) {
+      const chains = 2 + this.mods.uke;
+      const near = [];
+      for (const o of this.enemies) {
+        if (o.dead || o === e || o.prop) continue;
+        const d = Math.hypot(o.x - e.x, o.y - e.y);
+        if (d < 90) near.push([d, o]);
+      }
+      near.sort((a, b) => a[0] - b[0]);
+      for (const [, o] of near.slice(0, chains)) {
+        this.zaps.push({ x: o.x, y: o.y, t: 0, life: 10, splash: 0, dmg: 0 });
+        this.damageEnemy(o, Math.round(dmg * 0.8), { proc: false });
+      }
+    }
+    if (this.mods.atg > 0 && this.rnd() < 0.10) {
+      for (let i = 0; i < this.mods.atg; i += 1) {
+        this.projectiles.push({
+          x: this.px, y: this.py - 8, vx: 0, vy: -2.4, spr: 'missile', clip: null,
+          dmg: Math.round(dmg * 3), pierce: 0, r: 6, life: 150, homing: 0.16, target: e.id, flip: false,
+        });
+      }
+    }
+  }
+
+  // ---- 적의 공격 ----
+  // 예고(wind)가 끝나는 순간 실제로 쏜다. 종류마다 피하는 법이 다르다 —
+  // 직선탄은 옆으로, 곡사는 자리를 옮겨서, 광선은 예고 동안 축에서 벗어나서.
+  enemyFire(e, atk) {
+    const dx = this.px - e.x;
+    const dy = this.py - 6 - e.y;
+    const base = Math.atan2(dy, dx);
+    if (atk.kind === 'shot') {
+      for (let i = 0; i < (atk.n || 1); i += 1) {
+        const off = (i - ((atk.n || 1) - 1) / 2) * (atk.spread || 0);
+        const a = base + off;
+        this.eshots.push({
+          kind: 'shot', x: e.x, y: e.y - e.r * 0.6,
+          vx: Math.cos(a) * atk.speed, vy: Math.sin(a) * atk.speed,
+          dmg: Math.round(atk.dmg * SCALE.dmg(this.t / 3600)), r: atk.r || 4,
+          spr: atk.spr || 'ember', life: ESHOT_LIFE, flip: Math.abs(a) > Math.PI / 2,
+        });
+      }
+      this.spark(e.x, e.y - e.r * 0.6, 4, '#ff9a3c');
+    } else if (atk.kind === 'mortar') {
+      for (let i = 0; i < (atk.n || 1); i += 1) {
+        const a = this.rnd() * Math.PI * 2;
+        const spread = i === 0 ? 0 : 14 + this.rnd() * 20;
+        this.eshots.push({
+          kind: 'mortar', x: this.px + Math.cos(a) * spread, y: this.py + Math.sin(a) * spread,
+          dmg: Math.round(atk.dmg * SCALE.dmg(this.t / 3600)), rad: atk.rad,
+          life: atk.fall, fall: atk.fall,
+        });
+      }
+    } else if (atk.kind === 'laser') {
+      const len = atk.range + 60;
+      this.beams.push({ x: e.x, y: e.y - e.r, a: base, len, w: atk.w, life: 12 });
+      const hx = this.px - e.x;
+      const hy = this.py - 6 - (e.y - e.r);
+      const along = hx * Math.cos(base) + hy * Math.sin(base);
+      const perp = Math.abs(-hx * Math.sin(base) + hy * Math.cos(base));
+      if (along > 0 && along < len && perp < atk.w / 2 + PLAYER.r) {
+        this.hurt(Math.round(atk.dmg * SCALE.dmg(this.t / 3600)));
+      }
+      this.shake = Math.max(this.shake, FX.shakeBoss);
+    }
+  }
+
+  tickEnemyShots() {
+    const alive = [];
+    for (const s of this.eshots) {
+      s.life -= 1;
+      if (s.kind === 'shot') {
+        s.x += s.vx;
+        s.y += s.vy;
+        const dx = this.px - s.x;
+        const dy = this.py - 6 - s.y;
+        if (dx * dx + dy * dy <= (s.r + PLAYER.r) ** 2) {
+          this.hurt(s.dmg);
+          this.spark(s.x, s.y, 6, '#ff9a3c');
+          continue;
+        }
+      } else if (s.kind === 'mortar' && s.life <= 0) {
+        const dx = this.px - s.x;
+        const dy = this.py - 6 - s.y;
+        if (dx * dx + dy * dy <= (s.rad + PLAYER.r) ** 2) this.hurt(s.dmg);
+        this.spark(s.x, s.y, 14, '#ffb03a');
+        this.shake = Math.max(this.shake, 3);
+      }
+      if (s.life > 0) alive.push(s);
+    }
+    this.eshots = alive;
+    this.beams = this.beams.filter((b) => (b.life -= 1) > 0);
+  }
+
   spawn(kind, at) {
     const def = ENEMY[kind];
     const min = this.t / 3600;
@@ -343,7 +524,9 @@ export class Game {
       ky: 0,
       flash: 0,
       flashCd: 0,
-      runeCd: 0,
+      wind: 0,
+      atkCd: Math.floor(30 + this.rnd() * 60),
+      stun: 0,
       t: Math.floor(this.rnd() * 60),
       dead: false,
     });
@@ -385,8 +568,28 @@ export class Game {
         d = Math.hypot(dx, dy) || 1;
       }
       e.face = dx >= 0 ? 1 : -1;
-      e.x += (dx / d) * e.speed + e.kx;
-      e.y += (dy / d) * e.speed + e.ky;
+
+      // 공격 — 원작처럼 조준(wind) 동안 멈춰 서서 예고하고, 원거리형은 거리를 지킨다.
+      const atk = ENEMY[e.kind].atk;
+      let hold = false;
+      if (atk && atk.kind !== 'nova') {
+        if (e.wind > 0) {
+          e.wind -= 1;
+          hold = true;
+          if (e.wind === 0) this.enemyFire(e, atk);
+        } else if (e.atkCd > 0) {
+          e.atkCd -= 1;
+        } else if (d < atk.range) {
+          e.wind = atk.wind;
+          e.atkCd = atk.cd;
+          hold = true;
+        }
+      }
+      if (e.stun > 0) { e.stun -= 1; hold = true; }
+      const back = atk && atk.keep && d < atk.keep ? -1 : 1;
+      const move = hold ? 0 : e.speed * back;
+      e.x += (dx / d) * move + e.kx;
+      e.y += (dy / d) * move + e.ky;
       e.kx *= 0.82;
       e.ky *= 0.82;
       if (Math.abs(e.kx) < 0.02) e.kx = 0;
@@ -435,16 +638,21 @@ export class Game {
     this.enemies = alive;
   }
 
-  // 치명타는 원작처럼 피해가 두 배다(렌즈 제작자의 안경으로만 확률이 오른다)
+  // 원작의 프록 구조를 그대로 옮겼다. 때릴 때마다 아이템이 굴러가고, 그 결과가
+  // 다시 적을 때린다(연쇄는 proc:false로 넘겨 무한히 번지지 않게 막는다).
   damageEnemy(e, dmg, opt = {}) {
     if (e.dead) return;
+    // 크로우바 — 아직 성한 적에게만 붙는다
+    if (this.mods.crowbar > 0 && e.hp >= e.maxHp * 0.9) dmg *= 1 + this.mods.crowbar;
     const crit = this.mods.crit > 0 && this.rnd() < this.mods.crit;
     if (crit) {
       dmg *= 2;
       this.spark(e.x, e.y - e.r, 5, '#ffd23f');
     }
+    dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
-    // 오라·룬처럼 계속 때리는 무기 안에 있으면 매 프레임 흰색으로 타 실루엣만 남는다.
+    if (opt.proc !== false && !e.prop) this.procItems(e, dmg);
+    // 계속 때리는 스킬 안에 있으면 매 프레임 흰색으로 타 실루엣만 남는다.
     // 번쩍인 뒤에는 잠깐 쉬게 해서 원래 그림이 보이게 한다.
     if (e.flashCd <= 0) { e.flash = FX.hitFlash; e.flashCd = FX.hitFlash + 10; }
     const kn = (opt.knock || 0) * (ENEMY[e.kind].knock ?? 1);
@@ -457,6 +665,10 @@ export class Game {
     e.dead = true;
     if (e.prop) { this.breakBarrel(e); return; }
     this.kills += 1;
+    // 몬스터의 이빨 — 처치할 때마다 작은 회복 구슬이 떨어진다
+    if (this.mods.tooth > 0) {
+      this.drops.push({ kind: 'tooth', x: e.x, y: e.y, life: DROP.life, heal: 6 + this.mods.tooth * 2 });
+    }
     this.killDrop(e);
   }
 
@@ -521,10 +733,16 @@ export class Game {
     }
     const r = this.rnd();
     if (r < DROP.heartChance) this.drops.push({ kind: 'heart', x: e.x, y: e.y, life: DROP.life });
-    else if (r < DROP.heartChance + DROP.magnetChance) this.drops.push({ kind: 'scanner', x: e.x, y: e.y, life: DROP.life });
+    else if (r < DROP.heartChance + DROP.magnetChance) this.drops.push({ kind: 'magnet', x: e.x, y: e.y, life: DROP.life });
   }
 
   hurt(dmg) {
+    if (this.diveT > 0) return;                       // 구르는 동안은 무적
+    if (this.mods.block > 0 && this.rnd() < this.mods.block) {
+      this.banner('막았다', 24);
+      this.spark(this.px, this.py - 8, 8, '#f0a8ff');
+      return;
+    }
     if (this.god) return;          // 디버그 콘솔의 무적
     this.hp -= dmg;
     this.hurtCd = PLAYER.hurtCd;
@@ -575,7 +793,9 @@ export class Game {
   }
 
   collect(d) {
-    if (d.kind === 'coin') {
+    if (d.kind === 'tooth') {
+      this.hp = Math.min(this.maxHp, this.hp + (d.heal || 6));
+    } else if (d.kind === 'coin') {
       const [lo, hi] = COIN_VALUE;
       const amount = lo + Math.floor(this.rnd() * (hi - lo + 1));
       this.gold += amount;
@@ -583,7 +803,7 @@ export class Game {
     } else if (d.kind === 'heart') {
       this.hp = Math.min(this.maxHp, this.hp + HEART_HEAL);
       this.banner('회복', 60);
-    } else if (d.kind === 'scanner') {
+    } else if (d.kind === 'magnet') {
       for (const g of this.gems) g.magnet = true;
       this.banner('보석 흡수', 60);
     } else if (d.kind === 'chest') {

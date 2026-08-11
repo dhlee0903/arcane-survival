@@ -23,38 +23,45 @@ function table(rows) {
 }
 
 export const WEAPONS = {
+  // ---- 코만도의 스킬 넷 ----
+  // 원작과 같은 구성이다: 주 무기(더블 탭) · 보조(페이즈 라운드) · 이동기(택티컬 다이브) ·
+  // 특수(제압 사격 / 파편 수류탄). 조준 버튼이 없으므로 표적은 코드가 고르지만,
+  // **쏘는 방식**은 원작 그대로다 — 두 발씩 끊어 쏘고, 관통하고, 부채꼴로 퍼붓고, 던진다.
   tap: {
     name: '더블 탭',
     icon: 'skill.tap',
     evo: { into: 'crowdfunder', needs: 'crowbar' },
-    desc: '가장 가까운 적에게 권총을 쏜다 · 코만도의 기본기',
+    desc: '가장 가까운 적에게 권총을 두 발씩 끊어 쏜다',
     up: [
-      '투사체 2개',
-      '재사용 대기 감소 · 피해 증가',
-      '투사체 3개',
-      '재사용 대기 감소 · 피해 증가',
-      '투사체 4개 · 관통',
+      '연사 속도 증가',
+      '피해 증가 · 한 번에 두 표적',
+      '연사 속도 증가',
+      '피해 증가 · 한 번에 세 표적',
+      '탄이 적을 관통한다',
     ],
     lv: table([
-      { count: 1, cd: 52, dmg: 13, pierce: 0, speed: 4.6, r: 5 },
-      { count: 2 },
-      { cd: 44, dmg: 17 },
-      { count: 3 },
-      { cd: 38, dmg: 22 },
-      { count: 4, cd: 32, dmg: 28, pierce: 1 },
+      { burst: 2, gap: 5, targets: 1, cd: 36, dmg: 11, pierce: 0, speed: 6.2, r: 4 },
+      { cd: 32 },
+      { dmg: 15, targets: 2 },
+      { cd: 27 },
+      { dmg: 20, targets: 3 },
+      { cd: 23, dmg: 26, pierce: 1 },
     ]),
     fire(g, s) {
-      // 조준 범위는 화면에 맞춘다 — 안 보이는 적을 쏘면 탄이 허공으로 사라진다
-      const targets = g.nearestEnemies(g.px, g.py, Math.max(view.w, view.h) * 0.85, s.count);
-      for (let i = 0; i < s.count; i += 1) {
-        const t = targets[i % Math.max(1, targets.length)];
-        // 적이 없으면 바라보는 쪽으로 그냥 쏜다
-        const a = t ? Math.atan2(t.y - g.py, t.x - g.px) : (g.faceX >= 0 ? 0 : Math.PI);
-        const jitter = targets.length ? 0 : (i - (s.count - 1) / 2) * 0.18;
-        g.addProjectile({
-          x: g.px, y: g.py - 8, a: a + jitter, speed: s.speed,
-          dmg: s.dmg, pierce: s.pierce, r: s.r, clip: 'bullet', life: 150,
-        });
+      // 두 발을 한꺼번에 뿌리지 않고 몇 스텝 간격으로 끊어 쏜다(원작의 더블 탭)
+      const targets = g.nearestEnemies(g.px, g.py, Math.max(view.w, view.h) * 0.85, s.targets);
+      for (let t = 0; t < s.targets; t += 1) {
+        for (let i = 0; i < s.burst; i += 1) {
+          g.queueShot(i * s.gap, (gg) => {
+            const tgt = targets[t] && !targets[t].dead ? targets[t] : gg.nearestEnemies(gg.px, gg.py, 400, 1)[0];
+            const a = tgt ? Math.atan2(tgt.y - gg.py, tgt.x - gg.px) : (gg.faceX >= 0 ? 0 : Math.PI);
+            gg.addProjectile({
+              x: gg.px, y: gg.py - 8, a: a + (gg.rnd() - 0.5) * 0.06, speed: s.speed,
+              dmg: s.dmg, pierce: s.pierce, r: s.r, clip: 'bullet', life: 120,
+            });
+            gg.muzzle = 4;
+          });
+        }
       }
     },
   },
@@ -63,104 +70,55 @@ export const WEAPONS = {
     name: '페이즈 라운드',
     icon: 'skill.phase',
     evo: { into: 'phaseBlast', needs: 'syringe' },
-    desc: '바라보는 방향으로 관통탄을 쏜다 · 줄지어 선 적을 한 번에',
-    up: [
-      '파편 2개',
-      '재사용 대기 감소 · 피해 증가',
-      '파편 3개 · 관통 증가',
-      '파편 4개',
-      '파편 5개 · 관통 증가',
-    ],
+    desc: '바라보는 방향으로 관통탄 · 줄지어 선 적을 한 번에 꿴다',
+    up: ['피해 증가', '관통 증가', '재사용 대기 감소', '피해 증가 · 관통 증가', '탄속 · 피해 대폭 증가'],
     lv: table([
-      { count: 1, cd: 52, dmg: 9, pierce: 1, speed: 6.2, r: 5 },
-      { count: 2 },
-      { cd: 44, dmg: 12 },
-      { count: 3, pierce: 2 },
-      { count: 4, cd: 38, dmg: 15 },
-      { count: 5, cd: 30, dmg: 19, pierce: 3 },
+      { cd: 96, dmg: 30, pierce: 3, speed: 8.4, r: 6 },
+      { dmg: 40 },
+      { pierce: 5 },
+      { cd: 84 },
+      { dmg: 54, pierce: 7 },
+      { cd: 72, dmg: 72, pierce: 99, speed: 9.6 },
     ]),
     fire(g, s) {
-      const a = g.faceX >= 0 ? 0 : Math.PI;
-      for (let i = 0; i < s.count; i += 1) {
-        // 위아래로 조금씩 벌려 던진다
-        const off = (i - (s.count - 1) / 2) * 7;
-        g.addProjectile({
-          x: g.px, y: g.py - 8 + off, a, speed: s.speed,
-          dmg: s.dmg, pierce: s.pierce, r: s.r, clip: null, spr: 'phase',
-          flip: g.faceX < 0, life: 90,
+      // 표적이 있으면 그쪽, 없으면 바라보는 쪽. 한 발이 줄을 통째로 꿴다
+      const t = g.nearestEnemies(g.px, g.py, Math.max(view.w, view.h) * 0.9, 1)[0];
+      const a = t ? Math.atan2(t.y - g.py, t.x - g.px) : (g.faceX >= 0 ? 0 : Math.PI);
+      g.addProjectile({
+        x: g.px, y: g.py - 8, a, speed: s.speed,
+        dmg: s.dmg, pierce: s.pierce, r: s.r, clip: null, spr: 'phase',
+        flip: Math.abs(a) > Math.PI / 2, life: 120, trail: true,
+      });
+      g.muzzle = 6;
+    },
+  },
+
+  suppress: {
+    name: '제압 사격',
+    icon: 'skill.suppress',
+    evo: { into: 'missiles', needs: 'atg' },
+    desc: '한 방향으로 탄을 퍼붓는다 · 맞은 적은 밀리고 잠깐 비틀거린다',
+    up: ['탄 수 증가', '피해 증가', '탄 수 증가 · 부채꼴 확대', '재사용 대기 감소', '탄 수 대폭 증가'],
+    lv: table([
+      { shots: 6, gap: 4, spread: 0.20, cd: 190, dmg: 8, speed: 5.6, r: 4 },
+      { shots: 8 },
+      { dmg: 11 },
+      { shots: 11, spread: 0.28 },
+      { cd: 160 },
+      { shots: 16, dmg: 15, cd: 140 },
+    ]),
+    fire(g, s) {
+      const t = g.nearestEnemies(g.px, g.py, Math.max(view.w, view.h) * 0.85, 1)[0];
+      const base = t ? Math.atan2(t.y - g.py, t.x - g.px) : (g.faceX >= 0 ? 0 : Math.PI);
+      for (let i = 0; i < s.shots; i += 1) {
+        g.queueShot(i * s.gap, (gg) => {
+          const a = base + (gg.rnd() - 0.5) * s.spread * 2;
+          gg.addProjectile({
+            x: gg.px, y: gg.py - 8, a, speed: s.speed,
+            dmg: s.dmg, pierce: 0, r: s.r, clip: 'bullet', life: 110, stagger: 12,
+          });
+          gg.muzzle = 4;
         });
-      }
-    },
-  },
-
-  drone: {
-    name: '공격 드론',
-    icon: 'skill.drone',
-    evo: { into: 'gauss', needs: 'gasoline' },
-    desc: '곁을 돌며 닿은 적을 때린다',
-    up: ['룬 2개', '룬 3개', '피해 · 범위 증가', '룬 4개', '룬 5개 · 회전 가속'],
-    lv: table([
-      { n: 1, dmg: 12, rad: 34, spin: 0.055 },
-      { n: 2, dmg: 14, rad: 36 },
-      { n: 3, dmg: 17, rad: 38, spin: 0.06 },
-      { n: 3, dmg: 21, rad: 42, spin: 0.07 },
-      { n: 4, dmg: 25, rad: 44, spin: 0.075 },
-      { n: 5, dmg: 30, rad: 46, spin: 0.085 },
-    ]),
-    // 룬은 발사가 아니라 항상 떠 있다 — game.js가 매 스텝 위치를 갱신한다
-    passive: true,
-  },
-
-  flame: {
-    name: '화염 방사기',
-    icon: 'skill.flame',
-    evo: { into: 'willowisp', needs: 'infusion' },
-    desc: '주위를 태우고 밀어낸다',
-    up: ['범위 · 피해 증가', '범위 · 피해 증가', '주기 단축', '범위 · 피해 증가', '범위 대폭 증가'],
-    lv: table([
-      { rad: 30, dmg: 5, cd: 48 },
-      { rad: 34, dmg: 7, cd: 46 },
-      { rad: 40, dmg: 9, cd: 44 },
-      { rad: 46, dmg: 11, cd: 40 },
-      { rad: 52, dmg: 14, cd: 36 },
-      { rad: 60, dmg: 18, cd: 32 },
-    ]),
-    fire(g, s) {
-      let hit = 0;
-      for (const e of g.enemies) {
-        if (e.dead) continue;
-        const dx = e.x - g.px;
-        const dy = e.y - g.py + 6;
-        const rr = s.rad + e.r;
-        if (dx * dx + dy * dy > rr * rr) continue;
-        g.damageEnemy(e, s.dmg, { knock: 3.2, kx: dx, ky: dy });
-        hit += 1;
-      }
-      g.auraPulse = 14;
-      return hit;
-    },
-  },
-
-  uke: {
-    name: '우쿨렐레',
-    icon: 'skill.uke',
-    evo: { into: 'perforator', needs: 'glasses' },
-    desc: '화면 안의 적에게 번개가 튄다',
-    up: ['번개 2줄기', '번개 3줄기', '번개 4줄기', '번개 5줄기', '번개 7줄기 · 대기 단축'],
-    lv: table([
-      { n: 1, cd: 170, dmg: 24, splash: 16 },
-      { n: 2, cd: 160, dmg: 26 },
-      { n: 3, cd: 150, dmg: 30 },
-      { n: 4, cd: 140, dmg: 34 },
-      { n: 5, cd: 130, dmg: 40, splash: 20 },
-      { n: 7, cd: 110, dmg: 48, splash: 22 },
-    ]),
-    fire(g, s) {
-      const pool = g.enemiesOnScreen();
-      if (!pool.length) return;
-      for (let i = 0; i < s.n; i += 1) {
-        const e = pool[Math.floor(g.rnd() * pool.length)];
-        g.zaps.push({ x: e.x, y: e.y, t: 0, life: 16, dmg: s.dmg, splash: s.splash, done: false });
       }
     },
   },
@@ -168,27 +126,50 @@ export const WEAPONS = {
   frag: {
     name: '파편 수류탄',
     icon: 'skill.frag',
-    evo: { into: 'incendiary', needs: 'hoof' },
-    desc: '발밑에 굴려 터뜨린다 · 불바다가 남는다',
-    up: ['지속 증가', '낙인 2개', '범위 · 피해 증가', '낙인 3개', '범위 대폭 증가'],
+    evo: { into: 'behemoth', needs: 'bear' },
+    desc: '적 한가운데로 던진다 · 떨어진 자리가 터지고 불이 남는다',
+    up: ['피해 증가', '폭발 범위 증가', '재사용 대기 감소', '한 번에 두 발', '피해 · 범위 증가'],
     lv: table([
-      { n: 1, cd: 210, rad: 26, dmg: 5, life: 200 },
-      { n: 1, life: 230 },
-      { n: 2, cd: 195 },
-      { n: 2, rad: 32, dmg: 8, cd: 180 },
-      { n: 3, cd: 165, dmg: 11 },
-      { n: 3, cd: 150, rad: 42, dmg: 14, life: 280 },
+      { n: 1, cd: 150, dmg: 34, rad: 30, burn: 6, life: 90, fall: 34 },
+      { dmg: 46 },
+      { rad: 36 },
+      { cd: 130 },
+      { n: 2 },
+      { dmg: 66, rad: 44, burn: 10 },
     ]),
     fire(g, s) {
+      // 던져서 **떨어진 자리**가 터진다 — 발밑에 깔던 예전 방식과 다르다
       for (let i = 0; i < s.n; i += 1) {
-        const a = g.rnd() * TAU;
-        const d = i === 0 ? 0 : 22 + g.rnd() * 20;
-        g.patches.push({
-          x: g.px + Math.cos(a) * d,
-          y: g.py + Math.sin(a) * d * 0.6,
-          r: s.rad, dmg: s.dmg, life: s.life, t: 0, tick: 0,
+        const t = g.nearestEnemies(g.px, g.py, Math.max(view.w, view.h) * 0.7, s.n)[i]
+          || g.nearestEnemies(g.px, g.py, 400, 1)[0];
+        const tx = t ? t.x + (g.rnd() - 0.5) * 16 : g.px + g.faceX * 60;
+        const ty = t ? t.y + (g.rnd() - 0.5) * 16 : g.py;
+        g.grenades.push({
+          x: g.px, y: g.py - 10, tx, ty, t: 0, fall: s.fall,
+          dmg: s.dmg, rad: s.rad, burn: s.burn, life: s.life,
         });
       }
+    },
+  },
+
+  dive: {
+    name: '택티컬 다이브',
+    icon: 'skill.dive',
+    evo: { into: 'slide', needs: 'hoof' },
+    desc: '적이 붙으면 굴러서 빠져나간다 · 구르는 동안 **무적**',
+    up: ['무적 시간 증가', '재사용 대기 감소', '구르는 거리 증가', '재사용 대기 감소', '지나친 적에게 피해'],
+    lv: table([
+      { cd: 260, dur: 16, dist: 46, dmg: 0, near: 34 },
+      { dur: 20 },
+      { cd: 220 },
+      { dist: 58 },
+      { cd: 180 },
+      { dur: 24, dmg: 24 },
+    ]),
+    // 적이 가까이 붙었을 때만 구른다 — 안 그러면 혼자 굴러다닌다
+    ready: (g, s) => !!g.nearestEnemies(g.px, g.py, s.near, 1)[0],
+    fire(g, s) {
+      g.startDive(s);
     },
   },
 };
@@ -203,8 +184,8 @@ const EVOLVED = {
     icon: 'skill.tap',
     evolved: true,
     from: 'tap',
-    desc: '돈을 쏟아붓듯 여섯 발을 한꺼번에 · 관통',
-    lv: table([{ count: 6, cd: 26, dmg: 34, pierce: 2, speed: 5.2, r: 6 }]),
+    desc: '돈을 쏟아붓듯 멈추지 않고 난사한다',
+    lv: table([{ burst: 5, gap: 3, targets: 3, cd: 16, dmg: 16, pierce: 1, speed: 7, r: 4 }]),
     fire: (g, st) => WEAPONS.tap.fire(g, st),
   },
   phaseBlast: {
@@ -212,59 +193,63 @@ const EVOLVED = {
     icon: 'skill.phase',
     evolved: true,
     from: 'phase',
-    desc: '앞뒤로 산탄을 흩뿌린다 · 관통 5',
-    lv: table([{ count: 8, cd: 22, dmg: 22, pierce: 5, speed: 7, r: 6 }]),
+    desc: '관통탄을 부채꼴로 여덟 발 · 원작의 대체 스킬',
+    lv: table([{ count: 8, cd: 70, dmg: 40, pierce: 6, speed: 8.4, r: 6 }]),
     fire(g, s) {
-      // 앞뒤 양쪽으로 부채꼴
+      const t = g.nearestEnemies(g.px, g.py, Math.max(view.w, view.h) * 0.9, 1)[0];
+      const base = t ? Math.atan2(t.y - g.py, t.x - g.px) : (g.faceX >= 0 ? 0 : Math.PI);
       for (let i = 0; i < s.count; i += 1) {
-        const back = i % 2 === 1;
-        const a = (g.faceX >= 0) === !back ? 0 : Math.PI;
-        const off = (Math.floor(i / 2) - (s.count / 2 - 1) / 2) * 9;
+        const a = base + (i - (s.count - 1) / 2) * 0.13;
         g.addProjectile({
-          x: g.px, y: g.py - 8 + off, a, speed: s.speed,
+          x: g.px, y: g.py - 8, a, speed: s.speed,
           dmg: s.dmg, pierce: s.pierce, r: s.r, clip: null, spr: 'phase',
-          flip: a !== 0, life: 100,
+          flip: Math.abs(a) > Math.PI / 2, life: 90,
+        });
+      }
+      g.muzzle = 8;
+    },
+  },
+  missiles: {
+    name: '일회용 미사일 발사기',
+    icon: 'skill.suppress',
+    evolved: true,
+    from: 'suppress',
+    desc: '유도 미사일을 한꺼번에 열두 발 쏟아낸다',
+    lv: table([{ n: 12, gap: 3, cd: 200, dmg: 26 }]),
+    fire(g, s) {
+      for (let i = 0; i < s.n; i += 1) {
+        g.queueShot(i * s.gap, (gg) => {
+          const t = gg.nearestEnemies(gg.px, gg.py, 500, s.n)[i % s.n]
+            || gg.nearestEnemies(gg.px, gg.py, 500, 1)[0];
+          const a = -Math.PI / 2 + (gg.rnd() - 0.5) * 1.2;
+          gg.projectiles.push({
+            x: gg.px, y: gg.py - 8, vx: Math.cos(a) * 2.4, vy: Math.sin(a) * 2.4,
+            spr: 'missile', clip: null, dmg: s.dmg, pierce: 0, r: 6, life: 180,
+            homing: 0.14, target: t ? t.id : -1, flip: false,
+          });
+          gg.muzzle = 4;
         });
       }
     },
   },
-  gauss: {
-    name: 'TR12 가우스 오토 드론',
-    icon: 'skill.drone',
-    evolved: true,
-    from: 'drone',
-    desc: '드론 일곱 기가 넓게 돌며 접근을 막는다',
-    lv: table([{ n: 7, dmg: 46, rad: 62, spin: 0.1 }]),
-    passive: true,
-  },
-  willowisp: {
-    name: '불의 목격자',
-    icon: 'skill.flame',
-    evolved: true,
-    from: 'flame',
-    desc: '몸 주위가 불바다가 된다 · 강한 넉백',
-    lv: table([{ rad: 86, dmg: 26, cd: 24 }]),
-    fire: (g, st) => WEAPONS.flame.fire(g, st),
-  },
-  perforator: {
-    name: '충전된 천공기',
-    icon: 'skill.uke',
-    evolved: true,
-    from: 'uke',
-    desc: '열 줄기 낙뢰가 한꺼번에 떨어진다',
-    lv: table([{ n: 10, cd: 80, dmg: 72, splash: 30 }]),
-    fire: (g, st) => WEAPONS.uke.fire(g, st),
-  },
-  incendiary: {
-    name: '소이 수류탄',
+  behemoth: {
+    name: '거대한 광휘',
     icon: 'skill.frag',
     evolved: true,
     from: 'frag',
-    desc: '지나간 자리마다 불이 남는다',
-    lv: table([{ n: 1, cd: 24, rad: 26, dmg: 12, life: 150 }]),
-    fire(g, s) {
-      g.patches.push({ x: g.px, y: g.py, r: s.rad, dmg: s.dmg, life: s.life, t: 0, tick: 0 });
-    },
+    desc: '수류탄이 네 발씩 · 터지는 자리마다 불바다가 남는다',
+    lv: table([{ n: 4, cd: 110, dmg: 60, rad: 50, burn: 14, life: 130, fall: 30 }]),
+    fire: (g, st) => WEAPONS.frag.fire(g, st),
+  },
+  slide: {
+    name: '택티컬 슬라이드',
+    icon: 'skill.dive',
+    evolved: true,
+    from: 'dive',
+    desc: '원작의 대체 스킬 · 더 멀리 미끄러지고 지나친 적을 벤다',
+    lv: table([{ cd: 110, dur: 26, dist: 84, dmg: 44, near: 56 }]),
+    ready: (g, s) => !!g.nearestEnemies(g.px, g.py, s.near, 1)[0],
+    fire: (g, st) => WEAPONS.dive.fire(g, st),
   },
 };
 

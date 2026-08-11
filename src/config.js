@@ -1,6 +1,6 @@
 // 먼 곳의 횃대 — 상수 (single source of truth).
 
-export const VERSION = 'v3.0';
+export const VERSION = 'v4.0';
 
 // 로직은 초당 60회 고정. 아래 값은 모두 "1스텝(1/60초)당" 기준이다.
 export const STEP_MS = 1000 / 60;
@@ -71,20 +71,46 @@ export const GEM_CAP = 150;     // 넘치면 먼 것부터 합친다(값은 보�
 
 // ---- 적 ----
 // hp / 속도 / 접촉 피해 / 반지름 / 경험치 등급 / 스프라이트 클립
+// atk — 원작처럼 **적도 쏜다**. 접촉 피해만 있으면 그냥 몰려오는 벽이라, 피할 것이
+// 있어야 이동이 의미를 갖는다.
+//   wind : 조준 시간(스텝). 이 동안 멈춰 서서 예고한다 — 보고 피하라고 두는 시간이다
+//   keep : 이 거리 안으로는 더 붙지 않는다(원거리 몬스터가 뒤로 물러난다)
+//   kind : shot(직선탄) · nova(자폭 폭발) · mortar(발밑에 떨어지는 곡사) · laser(즉발 광선)
 export const ENEMY = {
   // 원작 수치를 그대로 옮기면(레무리안 80 · 타이탄 2100) 이쪽 밀도에서는 벽이 된다.
-  // 서열과 성격만 가져왔다 — 해파리가 제일 빠르고 닿으면 자폭하며, 위습은 약하고 느리다.
-  // 레무리안은 처음부터 나오는 기본 적이라 체력을 낮게 잡는다(초반 성장 속도가 여기서 정해진다).
-  wisp:      { hp: 8,   speed: 0.86, dmg: 5,  r: 6,  gem: 0, knock: 1.0,  clip: 'wisp' },
-  jellyfish: { hp: 16,  speed: 1.22, dmg: 6,  r: 7,  gem: 0, knock: 0.8,  clip: 'jellyfish', boom: true },
-  lemurian:  { hp: 10,  speed: 1.02, dmg: 8,  r: 7,  gem: 1, knock: 0.7,  clip: 'lemurian' },
-  beetle:    { hp: 28,  speed: 1.16, dmg: 10, r: 7,  gem: 1, knock: 0.5,  clip: 'beetle' },
-  guard:     { hp: 170, speed: 0.62, dmg: 16, r: 12, gem: 2, knock: 0.15, clip: 'guard', elite: true },
-  titan:     { hp: 820, speed: 0.58, dmg: 20, r: 15, gem: 2, knock: 0,    clip: 'titan',  boss: true },
+  // 서열과 성격만 가져왔다.
+  lemurian:  {
+    hp: 10, speed: 1.02, dmg: 8, r: 7, gem: 0, knock: 0.7, clip: 'lemurian',
+    atk: { kind: 'shot', n: 1, dmg: 5, speed: 1.9, cd: 220, wind: 36, range: 150, r: 4, spr: 'spit' },
+  },
+  wisp:      {
+    hp: 8, speed: 0.86, dmg: 5, r: 6, gem: 0, knock: 1.0, clip: 'wisp',
+    // 원작처럼 1.6초쯤 조준한 뒤 불덩이 세 발을 흩뿌린다
+    atk: { kind: 'shot', n: 3, spread: 0.26, dmg: 3, speed: 1.5, cd: 250, wind: 96, range: 190, keep: 120, r: 4, spr: 'ember' },
+  },
+  jellyfish: {
+    hp: 16, speed: 1.22, dmg: 6, r: 7, gem: 0, knock: 0.8, clip: 'jellyfish', boom: true,
+    // 닿으면 터진다. 죽을 때도 터지므로 근처에서 잡으면 같이 맞는다
+    atk: { kind: 'nova', dmg: 10, rad: 34, cd: 0, wind: 0, range: 0 },
+  },
+  beetle:    { hp: 28, speed: 1.16, dmg: 10, r: 7, gem: 1, knock: 0.5, clip: 'beetle' },
+  guard:     {
+    hp: 170, speed: 0.62, dmg: 16, r: 12, gem: 2, knock: 0.15, clip: 'guard', elite: true,
+    // 발밑으로 떨어지는 곡사 세 발 — 서 있으면 맞는다
+    atk: { kind: 'mortar', n: 3, dmg: 11, cd: 200, wind: 44, range: 230, keep: 90, rad: 26, fall: 46 },
+  },
+  titan:     {
+    hp: 820, speed: 0.58, dmg: 20, r: 15, gem: 2, knock: 0, clip: 'titan', boss: true,
+    // 눈이 달아오른 뒤 굵은 광선을 쏜다. 예고가 길어서 옆으로 빠지면 피할 수 있다
+    atk: { kind: 'laser', dmg: 22, cd: 260, wind: 70, range: 300, keep: 130, w: 14 },
+  },
   // 배럴 — 적이 아니라 부술 수 있는 물건이다. 적과 같은 배열에 담아 두면
   // 피격·조준 코드를 그대로 쓸 수 있어서 kind 하나로 끝난다(prop 플래그로 구분).
-  barrel:      { hp: 1,   speed: 0,    dmg: 0,  r: 9,  gem: 0, knock: 0,    clip: 'barrel',   prop: true },
+  barrel:    { hp: 1, speed: 0, dmg: 0, r: 9, gem: 0, knock: 0, clip: 'barrel', prop: true },
 };
+
+// 적 투사체
+export const ESHOT_LIFE = 60 * 6;
 
 // 배럴 — 화면 근처에 띄엄띄엄 놓인다. 부수면 자석 · 금화 · 회복 중 하나가 나온다.
 export const BARREL = {

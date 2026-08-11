@@ -94,8 +94,10 @@ export class Renderer {
     this.drops(c, g);
     this.flameRing(c, g);
     this.actors(c, g);
-    this.orbs(c, g);
     this.projectiles(c, g);
+    this.grenades(c, g);
+    this.enemyShots(c, g);
+    this.beams(c, g);
     this.zaps(c, g);
     this.parts(c, g);
     if (this.showHitbox) this.hitboxes(c, g);
@@ -227,6 +229,12 @@ export class Renderer {
     if (g.hurtCd > 0 && Math.floor(g.hurtCd / 4) % 2 === 1) return;
     const face = g.faceX < 0;
     this.blit(c, g.anim.frame(), g.px + this.ox, g.py + this.oy + PLAYER.r + 2, { flip: face, tint: g.hurtCd > PLAYER.hurtCd - 6 });
+    if (g.muzzle > 0) {                       // 총구 화염 — 쏘는 게 눈에 보여야 한다
+      c.save();
+      c.globalAlpha = 0.9;
+      ellipse(c, g.px + this.ox + (face ? -9 : 9), g.py + this.oy - 8, 4, 3, '#ffd23f');
+      c.restore();
+    }
   }
 
   // 체력 막대는 머리 바로 위에 붙인다 — 멀리 띄우면 허공에 뜬 판때기처럼 보인다.
@@ -245,20 +253,56 @@ export class Renderer {
   }
 
   // 룬은 공전 각도에 맞춰 앞면/옆면을 고른다 — 돌아가는 동전처럼 보이게
-  orbs(c, g) {
-    const n = g.orbs.length;
-    for (let i = 0; i < n; i += 1) {
-      const o = g.orbs[i];
-      const a = g.runeA + (i / n) * Math.PI * 2;
-      const face = Math.abs(Math.sin(a)) > 0.42 ? 'drone.0' : 'drone.1';
-      this.blit(c, face, o.x + this.ox, o.y + this.oy, { mid: true });
-    }
-  }
 
   projectiles(c, g) {
     for (const p of g.projectiles) {
       const name = p.spr || frameAt(p.clip, p.t);
       this.blit(c, name, p.x + this.ox, p.y + this.oy, { mid: true, flip: p.flip });
+    }
+  }
+
+  // 적이 쏜 것 — 플레이어 탄과 색을 확실히 갈라놔야 피할 수 있다(적탄은 주황)
+  enemyShots(c, g) {
+    for (const s of g.eshots) {
+      const x = s.x + this.ox;
+      const y = s.y + this.oy;
+      if (s.kind === 'shot') {
+        this.blit(c, s.spr, x, y, { mid: true });
+        continue;
+      }
+      // 곡사 — 떨어질 자리를 미리 그려 준다. 보고 비켜서라고 두는 표식이다
+      const u = 1 - s.life / s.fall;
+      c.save();
+      c.globalAlpha = 0.28 + u * 0.4;
+      ellipse(c, x, y, s.rad, s.rad * 0.5, '#ff7a1a');
+      c.globalAlpha = 0.9;
+      ellipse(c, x, y, s.rad * (1 - u), s.rad * (1 - u) * 0.5, '#ffd23f');
+      c.restore();
+    }
+  }
+
+  beams(c, g) {
+    for (const b of g.beams) {
+      c.save();
+      c.globalAlpha = Math.min(1, b.life / 8);
+      c.translate(b.x + this.ox, b.y + this.oy);
+      c.rotate(b.a);
+      c.fillStyle = '#ffd23f';
+      c.fillRect(0, -b.w / 2, b.len, b.w);
+      c.fillStyle = '#ffffff';
+      c.fillRect(0, -b.w / 4, b.len, b.w / 2);
+      c.restore();
+    }
+  }
+
+  grenades(c, g) {
+    for (const gr of g.grenades) {
+      const u = Math.min(1, gr.t / gr.fall);
+      c.save();
+      c.globalAlpha = 0.3;
+      ellipse(c, gr.tx + this.ox, gr.ty + this.oy, gr.rad * u, gr.rad * u * 0.5, '#ff7a1a');
+      c.restore();
+      this.blit(c, 'grenade', (gr.px || gr.x) + this.ox, (gr.py || gr.y) + this.oy, { mid: true });
     }
   }
 

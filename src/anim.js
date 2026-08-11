@@ -16,7 +16,6 @@ export const CLIPS = {
   barrel: { frames: ['barrel'], hold: 60, loop: true },
 
   bullet: { frames: ['bullet.0', 'bullet.1'], hold: 4, loop: true },
-  drone: { frames: ['drone.0', 'drone.1'], hold: 6, loop: true },
   zap: { frames: ['zap.0', 'zap.1'], hold: 3, loop: true },
   flame: { frames: ['flame.0', 'flame.1', 'flame.2'], hold: 6, loop: true },
 };

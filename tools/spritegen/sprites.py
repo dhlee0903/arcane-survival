@@ -602,65 +602,124 @@ sprite('grave', 'grave')(_grave)
 
 
 # ============================ 투사체 ============================
-PAL['arcane'] = {'k': K, 'd': '#4a2ba8', 'm': '#8a5cf0', 'l': '#d9c8ff', 'w': '#ffffff'}
+PAL['arcane'] = {'k': K, 'd': '#a8791a', 'm': '#ffb03a', 'l': '#ffe07a', 'w': '#ffffff'}
 
 
-def _bolt(step):
-    c = Cv(14, 14)
-    r = 4.6 + step * 0.6
-    c.celsphere(6.5, 6.5, r, r, ['d', 'm', 'l'], lo=0.34, hi=0.70)
-    c.rect(5, 5, 6, 6, 'w')
-    for d in range(1, 6 - step):
-        for dx, dy in ((d, 0), (-d, 0), (0, d), (0, -d)):
-            if c.get(6 + dx, 6 + dy) == '.':
-                c.put(6 + dx, 6 + dy, 'm' if d < 4 else 'd')
+def _bullet(step):
+    """더블 탭 탄 — 총알처럼 길쭉한 예광탄. 뒤로 꼬리가 끌린다."""
+    c = Cv(14, 6)
+    c.rect(8, 2, 12, 3, 'l')                  # 탄자
+    c.rect(11, 2, 12, 3, 'w')
+    c.rect(8, 2, 9, 2, 'w')
+    for i in range(7 - step):                 # 예광 꼬리
+        c.put(7 - i, 2 + (i % 2) * 0, 'm' if i < 3 else 'd')
+        c.put(7 - i, 3, 'd' if i < 4 else 'd')
     c.outline('k')
     return c.rows()
 
 
-sprite('bullet.0', 'arcane')(lambda: _bolt(0))
-sprite('bullet.1', 'arcane')(lambda: _bolt(1))
+sprite('bullet.0', 'arcane')(lambda: _bullet(0))
+sprite('bullet.1', 'arcane')(lambda: _bullet(1))
 
 
-PAL['frost'] = {'k': K, 'd': '#1c5a8c', 'm': '#4fb6e8', 'l': '#c8f0ff', 'w': '#ffffff'}
+
+
+# ---- 적이 쏘는 것 · 수류탄 · 미사일 ----
+PAL['ember'] = {'k': K, 'd': '#8a2a00', 'm': '#ff6a1a', 'l': '#ffc93f', 'w': '#fff2b8'}
+
+
+def _ember():
+    """레서 위습의 불덩이 — 적탄은 주황으로 통일해 아군 탄과 갈라 둔다."""
+    c = Cv(11, 11)
+    c.celsphere(5.0, 5.5, 4.6, 4.6, ['d', 'm', 'l'], lo=0.30, hi=0.68)
+    c.put(3, 4, 'w')
+    for dx, dy in ((5, -5), (-5, 4), (5, 5)):
+        c.put(5 + dx, 5 + dy, 'm')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('ember', 'ember')(_ember)
+
+
+def _spit():
+    """레무리안이 뱉는 불덩이 — 앞이 뾰족하다."""
+    c = Cv(14, 9)
+    for x in range(13):
+        half = min(x * 0.55, (13 - x) * 0.9, 3.6)
+        if half < 0.4:
+            continue
+        for y in range(int(round(4 - half)), int(round(4 + half)) + 1):
+            c.put(x, y, 'l' if y < 4 else ('m' if y < 6 else 'd'))
+    c.put(11, 4, 'w')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('spit', 'ember')(_spit)
+
+
+PAL['missile'] = {'k': K, 'd': '#2a3040', 'm': '#6b7789', 'l': '#dbe4f2',
+                  'r': '#a82a00', 'o': '#ff7a1a', 'y': '#ffd23f'}
+
+
+def _missile():
+    """AtG 미사일 — 앞이 붉고 뒤로 화염이 뻗는다."""
+    c = Cv(15, 8)
+    c.rect(5, 3, 11, 5, 'm')
+    c.rect(5, 3, 11, 3, 'l')
+    c.rect(11, 3, 13, 5, 'r')                 # 탄두
+    c.put(13, 4, 'o')
+    c.rect(4, 2, 6, 2, 'd')                   # 날개
+    c.rect(4, 6, 6, 6, 'd')
+    for i in range(4):                        # 배기 화염
+        c.put(4 - i, 4, 'y' if i < 2 else 'o')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('missile', 'missile')(_missile)
+
+
+PAL['grenade'] = {'k': K, 'd': '#14400f', 'm': '#2f6b28', 'l': '#5aa84a',
+                  'a': '#2a3040', 'w': '#8d99ad', 'y': '#ffd23f'}
+
+
+def _grenade():
+    c = Cv(11, 12)
+    c.celsphere(5.0, 7.0, 4.6, 4.6, ['d', 'm', 'l'], lo=0.32, hi=0.72)
+    c.rect(0, 5, 9, 5, 'd')
+    c.rect(0, 9, 9, 9, 'd')
+    c.rect(3, 1, 6, 3, 'a')                   # 뇌관
+    c.rect(3, 1, 6, 1, 'w')
+    c.put(7, 1, 'y')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('grenade', 'grenade')(_grenade)
+
+
+PAL['frost'] = {'k': K, 'd': '#a83a00', 'm': '#ff9a1a', 'l': '#ffe07a', 'w': '#ffffff'}
 
 
 def _shard():
-    c = Cv(19, 11)
-    for x in range(19):
-        half = min(x, 18 - x) * 0.52
-        if half < 0.4:
-            continue
-        for y in range(int(round(5 - half)), int(round(5 + half)) + 1):
-            f = (y - 5) + (x - 9) * 0.22
-            c.put(x, y, 'w' if f < -1.6 else ('l' if f < 0.2 else ('m' if f < 1.8 else 'd')))
+    """페이즈 라운드 — 길게 늘어난 관통탄. 지나간 자리에 잔상이 남는다."""
+    c = Cv(22, 7)
+    c.rect(12, 2, 19, 4, 'm')
+    c.rect(12, 2, 19, 2, 'l')
+    c.rect(18, 2, 20, 4, 'w')                 # 뜨거운 앞머리
+    c.put(21, 3, 'w')
+    for i in range(12):                       # 뒤로 끌리는 잔상
+        c.put(11 - i, 3, 'l' if i < 3 else ('m' if i < 7 else 'd'))
+        if i < 5:
+            c.put(11 - i, 2, 'm')
+            c.put(11 - i, 4, 'd')
     c.outline('k')
     return c.rows()
 
 
 sprite('phase', 'frost')(_shard)
-
-
-PAL['rune'] = {'k': K, 'd': '#a8791a', 'm': '#ffd23f', 'l': '#fff2b8', 'w': '#ffffff'}
-
-
-def _rune(step):
-    c = Cv(14, 14)
-    c.celsphere(6.5, 6.5, 6.2, 6.2, ['d', 'm', 'l'], lo=0.32, hi=0.72)
-    if step:
-        c.rect(6, 2, 7, 11, 'd')
-        c.rect(2, 6, 11, 7, 'd')
-    else:
-        for d in range(-4, 5):
-            c.put(6 + d, 6 + d, 'd')
-            c.put(6 + d, 6 - d, 'd')
-    c.put(4, 3, 'w')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('drone.0', 'rune')(lambda: _rune(0))
-sprite('drone.1', 'rune')(lambda: _rune(1))
 
 
 PAL['fire'] = {'k': K, 'd': '#a82a00', 'm': '#ff7a1a', 'l': '#ffd23f', 'w': '#fff2b8'}
@@ -826,64 +885,6 @@ def _skill_phase():
 sprite('skill.phase', 'item')(_skill_phase)
 
 
-def _skill_drone():
-    """공격 드론 — 곁을 돌며 대신 쏜다."""
-    c = Cv(18, 16)
-    c.celsphere(8.5, 8.0, 5.4, 4.6, ['a', 'w', 'W'], lo=0.32, hi=0.72)
-    c.rect(6, 6, 11, 7, 'q')                      # 앞유리
-    c.put(6, 6, 'Q')
-    for side in (-1, 1):                          # 로터 팔
-        c.rect(8.5 + side * 7, 3, 8.5 + side * 5, 3, 'w')
-        c.rect(8.5 + side * 8, 2, 8.5 + side * 4, 2, 'W')
-        c.rect(8.5 + side * 6, 3, 8.5 + side * 6, 5, 'a')
-    c.rect(7, 13, 10, 14, 'a')                    # 총열
-    c.outline('k')
-    return c.rows()
-
-
-sprite('skill.drone', 'item')(_skill_drone)
-
-
-def _skill_flame():
-    """화염 방사기 — 앞쪽을 통째로 태운다."""
-    c = Cv(20, 16)
-    c.rect(2, 6, 9, 10, 'a')                      # 연료통
-    c.rect(2, 6, 9, 6, 'w')
-    c.rect(9, 7, 12, 9, 'w')                      # 노즐
-    for i in range(7):                            # 뿜어 나오는 불
-        t = i / 6
-        h = 1 + int(t * 4)
-        for y in range(8 - h, 9 + h):
-            c.put(12 + i, y, 'o' if abs(y - 8) > h - 2 else 'O')
-    c.put(18, 8, 'c')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('skill.flame', 'item')(_skill_flame)
-
-
-def _skill_uke():
-    """우쿨렐레 — 맞은 적에서 번개가 튄다."""
-    c = Cv(18, 18)
-    c.celsphere(5.5, 12.5, 5.0, 5.0, ['m', 'M', 'n'], lo=0.32, hi=0.72)   # 울림통
-    c.celsphere(5.5, 12.0, 1.8, 1.8, ['k', 'k', 'k'])                     # 사운드 홀
-    for i in range(9):                                                    # 목
-        c.rect(6 + i * 0.7, 9 - i, 8 + i * 0.7, 10 - i, 'M')
-        c.put(6 + i * 0.7, 9 - i, 'n')
-    c.rect(12, 0, 15, 2, 'm')                                             # 머리
-    c.put(15, 0, 'M')
-    for i in range(8):                                                    # 줄
-        c.put(7 + i * 0.7, 9.5 - i, 'W')
-    for dx, dy, ch in ((14, 5, 'C'), (16, 7, 'C'), (13, 8, 'B'), (16, 10, 'C')):
-        c.put(dx, dy, ch)                                                 # 튀는 번개
-    c.outline('k')
-    return c.rows()
-
-
-sprite('skill.uke', 'item')(_skill_uke)
-
-
 def _skill_frag():
     """파편 수류탄 — 발밑에 굴려 터뜨린다."""
     c = Cv(16, 18)
@@ -899,6 +900,110 @@ def _skill_frag():
 
 
 sprite('skill.frag', 'item')(_skill_frag)
+
+
+def _skill_suppress():
+    """제압 사격 — 한 방향으로 퍼붓는 탄막."""
+    c = Cv(20, 16)
+    c.rect(1, 5, 9, 9, 'a')                   # 총몸
+    c.rect(1, 5, 9, 5, 'w')
+    c.rect(2, 10, 5, 13, 'a')                 # 손잡이
+    c.rect(9, 6, 12, 8, 'w')                  # 총열
+    c.rect(4, 3, 8, 5, 'w')                   # 탄창
+    for i, y in enumerate((4, 7, 10)):        # 뿜어 나가는 탄
+        for j in range(3):
+            c.put(13 + j * 2, y, 'Y' if j == 0 else 'y')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('skill.suppress', 'item')(_skill_suppress)
+
+
+def _skill_dive():
+    """택티컬 다이브 — 구르는 자세와 먼지."""
+    c = Cv(20, 16)
+    c.celsphere(9.0, 8.0, 5.6, 5.6, ['b', 'B', 'C'], lo=0.32, hi=0.72)   # 웅크린 몸
+    c.rect(5, 4, 9, 6, 'a')                   # 머리 · 고글
+    c.rect(6, 5, 8, 5, 'C')
+    for i in range(5):                        # 뒤로 이는 먼지
+        c.put(17 - i, 11 + (i % 2), 'W' if i < 2 else 'w')
+        c.put(16 - i, 13, 'w' if i < 3 else 'a')
+    c.rect(2, 12, 12, 13, 'a')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('skill.dive', 'item')(_skill_dive)
+
+
+def _item_bear():
+    """곰 인형 — 피해를 통째로 막는다."""
+    c = Cv(16, 16)
+    for side in (-1, 1):                      # 귀
+        c.celsphere(7.5 + side * 5.0, 3.0, 2.8, 2.8, ['m', 'M', 'n'])
+    c.celsphere(7.5, 7.5, 6.4, 6.0, ['m', 'M', 'n'], lo=0.32, hi=0.72)
+    c.celsphere(7.5, 10.0, 3.0, 2.4, ['n', 'n', 'n'])                     # 주둥이
+    c.eyes([(5, 6), (9, 6)], 'k', 'W', w=2, h=2)
+    c.rect(7, 9, 8, 10, 'k')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.bear', 'item')(_item_bear)
+
+
+def _item_ukulele():
+    """우쿨렐레 — 타격 시 번개가 튄다."""
+    c = Cv(18, 18)
+    c.celsphere(5.5, 12.5, 5.0, 5.0, ['m', 'M', 'n'], lo=0.32, hi=0.72)
+    c.celsphere(5.5, 12.0, 1.8, 1.8, ['k', 'k', 'k'])
+    for i in range(9):
+        c.rect(6 + i * 0.7, 9 - i, 8 + i * 0.7, 10 - i, 'M')
+        c.put(6 + i * 0.7, 9 - i, 'n')
+    c.rect(12, 0, 15, 2, 'm')
+    for i in range(8):
+        c.put(7 + i * 0.7, 9.5 - i, 'W')
+    for dx, dy, ch in ((14, 5, 'C'), (16, 7, 'C'), (13, 8, 'B'), (16, 10, 'C')):
+        c.put(dx, dy, ch)
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.ukulele', 'item')(_item_ukulele)
+
+
+def _item_atg():
+    """AtG 미사일 Mk.1 — 타격 시 유도 미사일."""
+    c = Cv(16, 18)
+    c.celtaper(7.5, 5, 16, 3.4, 3.4, ['a', 'w', 'W'])   # 탄체
+    for i in range(5):                                   # 원뿔 탄두
+        c.rect(7.5 - i * 0.7, 4 - i, 7.5 + i * 0.7, 4 - i, 'R' if i < 3 else 'p')
+    c.rect(3, 13, 5, 17, 'a')                            # 날개
+    c.rect(10, 13, 12, 17, 'a')
+    c.rect(6, 8, 9, 10, 'Y')                             # 표식
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.atg', 'item')(_item_atg)
+
+
+def _item_tooth():
+    """몬스터의 이빨 — 처치 시 회복 구슬."""
+    c = Cv(14, 16)
+    for i in range(11):                                  # 송곳니
+        half = 5.0 * (1 - i / 10) ** 0.7
+        for x in range(int(round(6.5 - half)), int(round(6.5 + half)) + 1):
+            nx = (x - 6.5) / max(1.0, half)
+            c.put(x, 14 - i, 'W' if nx < -0.2 else ('w' if nx < 0.5 else 'a'))
+    c.rect(2, 13, 11, 15, 'p')                           # 잇몸
+    c.rect(2, 13, 11, 13, 'R')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.tooth', 'item')(_item_tooth)
 
 
 def _item_crowbar():
@@ -936,22 +1041,6 @@ def _item_hoof():
 sprite('item.hoof', 'item')(_item_hoof)
 
 
-def _item_infusion():
-    """주입 — 처치할수록 최대 체력이 오른다."""
-    c = Cv(16, 18)
-    c.celtaper(7.5, 4, 16, 4.6, 4.0, ['a', 'w', 'W'])
-    c.rect(4, 8, 11, 15, 'r')                     # 안에 찬 피
-    c.rect(4, 8, 5, 15, 'R')
-    c.rect(3, 2, 12, 4, 'w')                      # 뚜껑
-    c.rect(3, 2, 12, 2, 'W')
-    c.rect(5, 5, 6, 7, 'W')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.infusion', 'item')(_item_infusion)
-
-
 def _item_syringe():
     """군인의 주사기 — 공격 속도."""
     c = Cv(18, 18)
@@ -970,41 +1059,6 @@ def _item_syringe():
 sprite('item.syringe', 'item')(_item_syringe)
 
 
-def _item_gasoline():
-    """휘발유 — 폭발 범위가 넓어진다."""
-    c = Cv(16, 18)
-    c.celtaper(7.5, 4, 16, 5.6, 5.6, ['d', 'o', 'O'])
-    c.rect(2, 4, 12, 4, 'O')
-    c.rect(5, 1, 9, 3, 'a')                       # 주둥이
-    c.rect(5, 1, 9, 1, 'w')
-    c.rect(10, 3, 12, 4, 'a')                     # 손잡이
-    c.rect(4, 8, 10, 12, 'k')                     # 불꽃 표식
-    c.rect(5, 9, 9, 11, 'Y')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.gasoline', 'item')(_item_gasoline)
-
-
-def _item_scanner():
-    """레이더 스캐너 — 멀리서도 주워 온다."""
-    c = Cv(18, 16)
-    c.rect(3, 11, 14, 14, 'a')                    # 받침
-    c.rect(3, 11, 14, 11, 'w')
-    c.celsphere(8.5, 6.0, 6.4, 5.4, ['a', 'w', 'W'], lo=0.34, hi=0.74,
-                clip=lambda x, y: y <= 7)
-    c.celsphere(8.5, 6.0, 4.0, 3.2, ['q', 'q', 'Q'], clip=lambda x, y: y <= 6)
-    c.rect(8, 6, 9, 11, 'w')
-    for dx, dy in ((13, 1), (15, 3), (13, 4)):    # 튀어나가는 전파
-        c.put(dx, dy, 'Q')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.scanner', 'item')(_item_scanner)
-
-
 def _item_glasses():
     """렌즈 제작자의 안경 — 치명타 확률."""
     c = Cv(20, 12)
@@ -1021,32 +1075,3 @@ def _item_glasses():
 sprite('item.glasses', 'item')(_item_glasses)
 
 
-def _item_medkit():
-    """의료 키트 — 시간마다 체력을 회복한다."""
-    c = Cv(18, 15)
-    c.rect(1, 3, 16, 14, 'W')                             # 흰 상자
-    c.rect(1, 3, 16, 3, 'w')
-    c.rect(1, 13, 16, 14, 'a')
-    c.rect(6, 1, 11, 3, 'w')                              # 손잡이
-    c.rect(6, 1, 11, 1, 'a')
-    c.rect(4, 7, 13, 10, 'R')                             # 붉은 십자
-    c.rect(7, 5, 10, 12, 'R')
-    c.rect(4, 7, 13, 7, 'p')
-    c.rect(7, 5, 10, 5, 'p')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.medkit', 'item')(_item_medkit)
-
-
-if __name__ == '__main__':
-    pick = sys.argv[1] if len(sys.argv) > 1 else ''
-    items = []
-    for name, (pal, fn, art) in SPR.items():
-        if pick and not name.startswith(pick):
-            continue
-        rows = fn()
-        items.append((name, PAL[pal], rows, art))
-        print(f'{name}: {len(rows[0])}x{len(rows)}')
-    render(items, 'gen2.png', zoom=8, cols=6, bg=(22, 18, 30))

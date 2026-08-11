@@ -7,14 +7,16 @@ import { WEAPONS, WEAPON_IDS } from './weapons.js';
 // 아이템 — 직접 쏘지 않고 코만도 자신을 바꾼다. 이름은 원작에서 그대로 가져왔다.
 // icon은 스프라이트시트의 프레임 이름(스킬 아이콘과 같은 11×11 규격).
 export const PASSIVES = {
-  crowbar: { name: '크로우바', color: '#e8394f', desc: '공격력 +12%', step: 0.12, icon: 'item.crowbar' },
-  hoof: { name: '폴의 염소 발굽', color: '#c19a6b', desc: '이동 속도 +8%', step: 0.08, icon: 'item.hoof' },
-  infusion: { name: '주입', color: '#ff5a63', desc: '최대 체력 +22', step: 22, icon: 'item.infusion' },
-  syringe: { name: '군인의 주사기', color: '#ffd23f', desc: '공격 속도 +8%', step: 0.08, icon: 'item.syringe' },
-  gasoline: { name: '휘발유', color: '#ff7a1a', desc: '효과 범위 +10%', step: 0.10, icon: 'item.gasoline' },
-  scanner: { name: '레이더 스캐너', color: '#7fe2ff', desc: '획득 범위 +30%', step: 0.30, icon: 'item.scanner' },
+  // 수치만 올려 주는 아이템은 두 개뿐이다. 나머지는 **때릴 때마다 굴리는** 것들이라
+  // 같은 스킬을 써도 무엇을 들었느냐에 따라 화면이 달라진다(원작의 프록).
+  crowbar: { name: '크로우바', color: '#e8394f', desc: '체력 90% 이상 적에게 피해 +75%', step: 0.75, icon: 'item.crowbar' },
+  hoof: { name: '폴의 염소 발굽', color: '#c19a6b', desc: '이동 속도 +14%', step: 0.14, icon: 'item.hoof' },
+  bear: { name: '곰 인형', color: '#f0a8ff', desc: '피해를 통째로 막을 확률 +15%', step: 0.15, icon: 'item.bear' },
+  syringe: { name: '군인의 주사기', color: '#ffd23f', desc: '공격 속도 +15%', step: 0.15, icon: 'item.syringe' },
+  ukulele: { name: '우쿨렐레', color: '#c19a6b', desc: '타격 시 25% 확률로 번개가 튄다', step: 1, icon: 'item.ukulele' },
+  atg: { name: 'AtG 미사일 Mk.1', color: '#a8dcff', desc: '타격 시 10% 확률로 유도 미사일', step: 1, icon: 'item.atg' },
   glasses: { name: '렌즈 제작자의 안경', color: '#a8dcff', desc: '치명타 확률 +7%', step: 0.07, icon: 'item.glasses' },
-  medkit: { name: '의료 키트', color: '#ffffff', desc: '초당 체력 +0.5', step: 0.5, icon: 'item.medkit' },
+  tooth: { name: '몬스터의 이빨', color: '#ffffff', desc: '처치 시 회복 구슬을 떨군다', step: 1, icon: 'item.tooth' },
 };
 
 export const PASSIVE_IDS = Object.keys(PASSIVES);
@@ -23,14 +25,19 @@ export const PASSIVE_IDS = Object.keys(PASSIVES);
 export function modsOf(passives) {
   const lv = (id) => passives[id] || 0;
   return {
-    dmg: 1 + lv('crowbar') * PASSIVES.crowbar.step,
+    dmg: 1,                                              // 평평한 공격력 증가는 없앴다
+    crowbar: lv('crowbar') * PASSIVES.crowbar.step,      // 성한 적에게만 붙는 보너스
     speed: 1 + lv('hoof') * PASSIVES.hoof.step,
-    hp: lv('infusion') * PASSIVES.infusion.step,
+    // 중첩할수록 늘지만 100%에는 닿지 않는다(원작과 같은 수렴)
+    block: 1 - (1 - PASSIVES.bear.step) ** lv('bear'),
     cd: 1 / (1 + lv('syringe') * PASSIVES.syringe.step),
-    area: 1 + lv('gasoline') * PASSIVES.gasoline.step,
-    pick: 1 + lv('scanner') * PASSIVES.scanner.step,
+    uke: lv('ukulele'),
+    atg: lv('atg'),
     crit: lv('glasses') * PASSIVES.glasses.step,
-    regen: lv('medkit') * PASSIVES.medkit.step,
+    tooth: lv('tooth'),
+    hp: 0,
+    area: 1,
+    regen: 0,
   };
 }
 
