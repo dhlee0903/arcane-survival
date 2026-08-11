@@ -2,7 +2,7 @@
 // 모든 그림은 시작할 때 구운 **스프라이트시트 한 장**에서 잘라 쓴다(this.sheet).
 // 카메라는 항상 코만도를 화면 한가운데 둔다.
 
-import { view, setView, PLAYER, VERSION, ENEMY, RUN_SEC, ITEM_TIER } from './config.js';
+import { view, setView, PLAYER, VERSION, ENEMY, RUN_SEC, ITEM_TIER, hash2 } from './config.js';
 import { SKILLS, SKILL_IDS } from './weapons.js';
 import { buildSheet, FONT } from './sprites.js';
 import { frameAt } from './anim.js';
@@ -303,14 +303,7 @@ export class Renderer {
       const x = ch.x + this.ox;
       const y = ch.y + this.oy;
       this.shadow(c, x, y, 10);
-      this.blit(c, ch.open ? 'chest.open' : 'chest', x, y);
-      // 등급은 테두리 색으로 알린다
-      const tone = ITEM_TIER[ch.tier].color;
-      c.strokeStyle = tone;
-      c.globalAlpha = 0.75;
-      c.lineWidth = 1;
-      c.strokeRect(Math.round(x) - 6.5, Math.round(y) - 11.5, 13, 12);
-      c.globalAlpha = 1;
+      this.blit(c, `chest.${ch.tier}${ch.open ? '.open' : ''}`, x, y);
       if (ch.open) continue;
       const enough = g.gold >= ch.price;
       const label = `$${ch.price}`;
@@ -529,8 +522,3 @@ function ring(c, cx, cy, r, color) {
 }
 
 // 좌표 → 0~1. 저장 없이 같은 자리에서 늘 같은 값이 나오는 해시.
-function hash2(x, y) {
-  let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263);
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}

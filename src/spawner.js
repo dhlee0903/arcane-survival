@@ -8,10 +8,10 @@ import { view, areaScale, MAX_ENEMIES } from './config.js';
 const S = (sec) => sec * 60;   // 초 → 스텝
 
 export const PHASES = [
-  { at: S(0), kinds: [['lemurian', 1]], every: 78, burst: 1 },
-  { at: S(40), kinds: [['lemurian', 4], ['wisp', 2]], every: 61, burst: 1 },
-  { at: S(90), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 2]], every: 51, burst: 2 },
-  { at: S(150), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 3]], every: 44, burst: 2 },
+  { at: S(0), kinds: [['lemurian', 1]], every: 130, burst: 1 },
+  { at: S(40), kinds: [['lemurian', 4], ['wisp', 2]], every: 100, burst: 1 },
+  { at: S(90), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 2]], every: 82, burst: 1 },
+  { at: S(150), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 3]], every: 66, burst: 2 },
   { at: S(230), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 3], ['beetle', 2]], every: 40, burst: 2 },
   { at: S(330), kinds: [['lemurian', 3], ['wisp', 2], ['jellyfish', 3], ['beetle', 3]], every: 37, burst: 2 },
   { at: S(430), kinds: [['lemurian', 3], ['jellyfish', 3], ['beetle', 4]], every: 34, burst: 2 },

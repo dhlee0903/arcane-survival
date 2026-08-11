@@ -8,7 +8,8 @@
 
 import {
   view, PLAYER, RUN_SEC, ENEMY, SCALE, GEM, gemTier, GEM_DRIFT, GEM_CAP,
-  DROP, HEART_HEAL, BARREL, COIN_VALUE, ESHOT_LIFE, xpNeed, ITEM_TIER, CHEST_TIERS, FX,
+  DROP, HEART_HEAL, BARREL, COIN_VALUE, ESHOT_LIFE, xpNeed, ITEM_TIER, CHEST_TIERS,
+  hash2, FX,
 } from './config.js';
 import { SKILLS, SKILL_IDS } from './weapons.js';
 import { modsOf, rollItem, PASSIVES } from './upgrades.js';
@@ -76,7 +77,7 @@ export class Game {
     this.aimStick = null;  // 터치 조준 스틱
     this.cds = { primary: 0, special: 0, special2: 0, dodge: 0 };
     this.chests = [];      // 맵에 흩어진 상자 — 찾아서 골드로 연다
-    this.chestCd = 60 * 8;
+    this.sites = new Set();   // 이미 훑은 칸
     this.pops = [];        // 화면에 떠오르는 숫자(골드)
     this.loot = [];        // 상자에서 떨어져 나와 바닥에 놓인 아이템
     this.pickFx = [];      // 주운 아이템이 머리 위로 떴다 사라진다
@@ -151,14 +152,13 @@ export class Game {
 
     this.movePlayer();
     this.tickSkills();
-    this.tickChests();
+    this.tickSites();
     this.tickLoot();
     this.tickPops();
     this.tickProjectiles();
     this.tickZaps();
     this.tickPatches();
     this.spawner.update(this);
-    this.tickBarrels();
     this.tickEnemies();
     this.tickEnemyShots();
     this.tickQueue();
@@ -288,28 +288,54 @@ export class Game {
 
   // ---- 상자 ----
   // 원작처럼 맵에 놓여 있고, 골드가 모자라면 못 연다. 찾아다녀야 한다.
-  rollChestTier() {
-    let r = this.rnd();
-    for (const t of CHEST_TIERS) {
-      if (r < t.weight) return t;
-      r -= t.weight;
+  // 상자와 항아리는 **세상에 미리 놓여 있다.** 좌표 해시로 자리를 정하므로
+  // 어디로 가든 같은 자리에 있고, 화면 밖에서 걸어 들어가야 만난다 — 눈앞에서
+  // 갑자기 생기지 않는다(예전에는 타이머로 소환해서 뻥 튀어나왔다).
+  siteAt(cx, cy) {
+    const h = hash2(cx * 3 + 11, cy * 7 - 5);
+    if (h < 0.055) {
+      const t = hash2(cx * 13 - 3, cy * 5 + 9);
+      const tier = t < 0.08 ? CHEST_TIERS[2] : (t < 0.34 ? CHEST_TIERS[1] : CHEST_TIERS[0]);
+      return { kind: 'chest', tier };
     }
-    return CHEST_TIERS[0];
+    if (h < 0.16) return { kind: 'barrel' };
+    return null;
   }
 
-  tickChests() {
-    this.chestCd -= 1;
-    if (this.chestCd <= 0 && this.chests.length < 5) {
-      this.chestCd = 60 * 16;
-      const t = this.rollChestTier();
-      const a = this.rnd() * TAU;
-      const d = 170 + this.rnd() * 190;
-      this.chests.push({
-        x: this.px + Math.cos(a) * d, y: this.py + Math.sin(a) * d,
-        tier: t.id, price: Math.round(t.price * (1 + (this.t / 3600) * 0.4)),
-        open: false, t: 0,
-      });
+  tickSites() {
+    const CELL = 150;
+    const reach = Math.max(view.w, view.h) * 1.1;
+    const c0 = Math.floor((this.px - reach) / CELL);
+    const c1 = Math.floor((this.px + reach) / CELL);
+    const r0 = Math.floor((this.py - reach) / CELL);
+    const r1 = Math.floor((this.py + reach) / CELL);
+    for (let cy = r0; cy <= r1; cy += 1) {
+      for (let cx = c0; cx <= c1; cx += 1) {
+        const key = `${cx},${cy}`;
+        if (this.sites.has(key)) continue;
+        const site = this.siteAt(cx, cy);
+        this.sites.add(key);
+        if (!site) continue;
+        const x = (cx + 0.2 + hash2(cx, cy) * 0.6) * CELL;
+        const y = (cy + 0.2 + hash2(cx + 7, cy - 3) * 0.6) * CELL;
+        if (Math.hypot(x - this.px, y - this.py) < 90) continue;   // 발밑에는 놓지 않는다
+        if (site.kind === 'chest') {
+          this.chests.push({
+            x, y, tier: site.tier.id, open: false, t: 0,
+            price: Math.round(site.tier.price * (1 + (this.t / 3600) * 0.4)),
+          });
+        } else {
+          this.spawn('barrel', { x, y });
+        }
+      }
     }
+    // 멀어진 상자는 목록에서 뺀다(다시 오면 같은 자리에 다시 생긴다)
+    this.chests = this.chests.filter((ch) => {
+      if (Math.hypot(ch.x - this.px, ch.y - this.py) < reach * 1.6) return true;
+      this.sites.delete(`${Math.floor(ch.x / CELL)},${Math.floor(ch.y / CELL)}`);
+      return false;
+    });
+
     for (const c of this.chests) {
       c.t += 1;
       if (c.open) continue;
@@ -319,7 +345,6 @@ export class Game {
       if (this.gold < c.price) { c.deny = 20; continue; }
       this.gold -= c.price;
       c.open = true;
-      // 바로 먹지 않는다 — 상자 앞에 아이템이 떨어지고, 닿아야 줍는다
       const id = rollItem(this.rnd, c.tier);
       this.loot.push({ id, x: c.x, y: c.y + 12, t: 0 });
       this.spark(c.x, c.y, 18, ITEM_TIER[c.tier].color);
@@ -450,18 +475,6 @@ export class Game {
   }
 
   // 항아리는 적이 아니라 풍경에 놓인 물건이다 — 화면 근처에 띄엄띄엄 놓는다
-  tickBarrels() {
-    this.potCd -= 1;
-    if (this.potCd > 0) return;
-    this.potCd = BARREL.every;
-    let alive = 0;
-    for (const e of this.enemies) if (!e.dead && e.prop) alive += 1;
-    if (alive >= BARREL.max) return;
-    // 화면 안쪽 어딘가 — 너무 가까우면 지나가다 저절로 깨진다
-    const a = this.rnd() * TAU;
-    const d = 60 + this.rnd() * Math.min(view.w, view.h) * 0.45;
-    this.spawn('barrel', { x: this.px + Math.cos(a) * d, y: this.py + Math.sin(a) * d });
-  }
 
   // ---- 적 ----
   // 몇 스텝 뒤에 나갈 사격을 담아 둔다. 한꺼번에 뿌리지 않고 끊어 쏘는 스킬(더블 탭 ·

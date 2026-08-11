@@ -89,7 +89,7 @@ for _n, _p in (('commando.stand', 'stand'), ('commando.stepA', 'stepA'), ('comma
 # ============================ 레무리안 ============================
 # 두 발로 서는 작은 주황 도마뱀. 물어뜯고 불덩이를 뱉는다.
 PAL['lemurian'] = {
-    'k': K, 'D': '#5c1a08', 'd': '#a83a10', 'm': '#e86a24', 'l': '#ffa martian'.replace(' martian', '55c'),
+    'k': K, 'D': '#2c0f4a', 'd': '#5a2199', 'm': '#8b45d6', 'l': '#c08cff',
     'b': '#f4e4c8', 'e': '#160c08', 'q': '#ffd23f', 'Q': '#fff6c0',
 }
 LEM = ['d', 'm', 'l']
@@ -134,29 +134,38 @@ sprite('lemurian.1', 'lemurian')(lambda: _lemurian(1))
 # ============================ 레서 위습 ============================
 # 쇠 테두리 안에서 타는 푸른 불꽃. 떠다니며 불덩이를 쏜다.
 PAL['wisp'] = {
-    'k': K, 'D': '#101a2e', 'd': '#2a3c5c', 'm': '#4a6390', 'l': '#8aa4d0',
-    'i': '#1f6ad4', 'o': '#4fc4ff', 'O': '#c8f4ff', 'w': '#ffffff',
+    'k': K, 'D': '#2a0604', 'd': '#5c0f08', 'm': '#a01a10', 'l': '#e0401c',
+    'o': '#ff7a1a', 'y': '#ffc93f', 'w': '#fff2b8',
+    'e': '#0a0402', 'q': '#ffd23f', 'Q': '#fff6c0',
 }
 
 
 def _wisp(ph):
-    c = Cv(22, 24)
-    cx, cy = 10.5, 11.0
-    # 쇠 테 — 위아래로 갈라진 고리
-    for a in range(0, 360, 4):
-        rad = math.radians(a)
-        if 70 < a % 360 < 110 or 250 < a % 360 < 290:
-            continue
-        for rr, ch in ((7.4, 'd'), (8.4, 'm'), (9.4, 'D')):
-            c.put(cx + math.cos(rad) * rr, cy + math.sin(rad) * rr, ch)
-    c.rect(cx - 9, cy - 1, cx - 7, cy + 1, 'l')      # 테를 잡는 물림쇠
-    c.rect(cx + 7, cy - 1, cx + 9, cy + 1, 'd')
-    # 불꽃 — 프레임마다 한 겹 부푼다
-    r = 5.4 + ph * 0.6
-    c.celsphere(cx, cy, r, r, ['i', 'o', 'O'], lo=0.30, hi=0.66)
-    c.celsphere(cx - 0.6, cy - 0.6, r * 0.45, r * 0.45, ['w', 'w', 'w'])
-    for dx, dy in ((0, -7 - ph), (-3, -6), (3, -6)):  # 위로 솟는 불꽃
-        c.put(cx + dx, cy + dy, 'o')
+    """레서 위습 — 검붉은 덩이가 통째로 타고 있다. 눈만 있고 입은 없다."""
+    import math as _m
+    c = Cv(24, 26)
+    cx, cy = 11.5, 14.0
+    # 위로 솟는 불꽃 — 몸에서 이어져 올라간다
+    for y in range(0, 14):
+        t = 1 - y / 13
+        half = 6.4 * _m.sin(t * 2.0) ** 0.8 if t > 0 else 0
+        wob = _m.sin(y * 0.7 + ph * 1.6) * 1.4
+        for x in range(int(round(cx + wob - half)), int(round(cx + wob + half)) + 1):
+            nx = (x + 0.5 - cx - wob) / max(1.0, half)
+            ch = 'o' if abs(nx) < 0.65 else 'm'
+            if abs(nx) < 0.3 and y > 5:
+                ch = 'y'
+            c.put(x, y, ch)
+    # 본체 — 검붉은 덩이
+    c.celsphere(cx, cy, 7.4, 7.0, ['d', 'm', 'l'], lo=0.30, hi=0.70)
+    c.celsphere(cx, cy + 1.5, 5.4, 4.4, ['D', 'd', 'd'], lo=0.30, hi=0.70)
+    # 아래로 흘러내리는 불티
+    for i, (dx, dy) in enumerate(((-4, 8), (0, 9), (4, 8))):
+        c.put(cx + dx, cy + dy + (ph and i % 2), 'o')
+        c.put(cx + dx, cy + dy + 1 + (ph and i % 2), 'm')
+    c.eyes([(cx - 4.5, cy - 2), (cx + 1.5, cy - 2)], 'e', 'q', w=3, h=3)
+    c.put(cx - 4.5, cy - 2, 'Q')
+    c.put(cx + 1.5, cy - 2, 'Q')
     c.outline('k')
     return c.rows()
 
@@ -187,7 +196,6 @@ def _jelly(ph):
     c.rect(cx - 10, 13, cx + 10, 14, 'd')
     # 속에서 빛나는 핵
     c.celsphere(cx, 9.0, 3.4 + ph * 0.6, 3.0 + ph * 0.6, ['q', 'q', 'Q'])
-    c.eyes([(cx - 5, 6), (cx + 2, 6)], 'e', 'Q', w=3, h=3)
     c.ao('D', 'dm')
     c.outline('k')
     return c.rows()
@@ -414,28 +422,21 @@ sprite('coin', 'coin')(_coin)
 
 
 # ============================ 부술 수 있는 물건 ============================
-PAL['barrel'] = {'k': K, 'D': '#2e1a08', 'd': '#5c3a14', 'm': '#8f5f28', 'l': '#c49255',
-                 'i': '#2f3742', 'I': '#7d8b9e', 'q': '#ff8a1a', 'Q': '#ffd23f'}
+PAL['barrel'] = {'k': K, 'D': '#3a1e0a', 'd': '#6b3d16', 'm': '#9c6028', 'l': '#c98f52'}
 
 
 def _barrel():
-    """RoR2 배럴 — 나무통에 쇠테. 부수면 안에 든 게 튀어나온다."""
-    c = Cv(18, 22)
+    """갈색 작은 항아리 — 배가 부르고 목이 좁은 흔한 모양. 부수면 안에 든 게 나온다."""
+    c = Cv(18, 20)
     cx = 8.5
-    c.celtaper(cx, 3, 20, 7.4, 6.6, ['d', 'm', 'l'], curve=0.5)
-    c.celsphere(cx, 3.0, 7.4, 2.2, ['d', 'm', 'l'], lo=0.28, hi=0.70)
-    for y in (6, 16):                              # 쇠테
-        for x in range(0, 18):
-            if c.get(x, y) in 'dml':
-                c.put(x, y, 'I' if x < cx else 'i')
-            if c.get(x, y + 1) in 'dml':
-                c.put(x, y + 1, 'i')
-    for x in (4, 8, 12):                           # 널빤지 이음선
-        for y in range(3, 21):
-            if c.get(x, y) == 'm':
-                c.put(x, y, 'd')
-    c.rect(cx - 2, 10, cx + 2, 12, 'q')            # 겉에 찍힌 표식
-    c.rect(cx - 2, 10, cx, 11, 'Q')
+    c.celsphere(cx, 12.0, 7.6, 6.8, ['d', 'm', 'l'], lo=0.32, hi=0.74)   # 배
+    c.celtaper(cx, 5, 9, 3.6, 5.6, ['d', 'm', 'l'])                      # 목
+    c.celsphere(cx, 4.0, 5.0, 1.8, ['d', 'm', 'l'], lo=0.28, hi=0.68)    # 아가리 테
+    c.celsphere(cx, 3.6, 3.2, 1.0, ['k', 'k', 'k'])                      # 뚫린 속
+    c.rect(4, 6, 13, 6, 'D')
+    for x in range(1, 17):                                               # 굽는 자국
+        if c.get(x, 13) in 'ml':
+            c.put(x, 13, 'd')
     c.ao('D', 'dm')
     c.outline('k')
     return c.rows()
@@ -445,41 +446,49 @@ sprite('barrel', 'barrel')(_barrel)
 
 
 PAL['chest'] = {'k': K, 'D': '#2e1a06', 'd': '#5f380f', 'm': '#9c6026', 'l': '#d99a5a',
-                'i': '#2f3742', 'I': '#7d8b9e', 'c': '#d9a01f', 'C': '#ffd23f', 'Y': '#fff2b8'}
+                'i': '#2f3742', 'I': '#7d8b9e', 'c': '#a8791a', 'C': '#ffd23f', 'Y': '#fff2b8',
+                'g': '#14561f', 'G': '#2f8f3a', 'j': '#5fc46a',
+                'r': '#5c0f18', 'R': '#a8202f', 'p': '#e0505f'}
 
 
-def _chest(open_=False):
-    """상자 — 둥둥 뜨지 않고 바닥에 놓인다. 열리면 뚜껑이 젖혀지고 속이 빛난다."""
+def _chest(tier='common', open_=False):
+    """상자 — 등급마다 나무결과 장식이 다르다. 일반은 나무, 레어는 초록 칠에 놋쇠,
+    전설은 붉은 옻칠에 금장. 바닥에 고정이고 열리면 뚜껑이 젖혀진다."""
+    body = {'common': ('d', 'm', 'l'), 'rare': ('g', 'G', 'j'), 'legend': ('r', 'R', 'p')}[tier]
+    trim = {'common': ('I', 'i'), 'rare': ('c', 'C'), 'legend': ('C', 'c')}[tier]
     c = Cv(22, 20)
     if open_:
-        # 젖혀진 뚜껑
-        c.celtaper(11.0, 1, 5, 8.6, 9.6, ['d', 'm', 'l'])
+        c.celtaper(11.0, 1, 5, 8.6, 9.6, body)
         c.rect(1, 6, 20, 6, 'D')
-        c.celtaper(11.0, 8, 18, 9.8, 9.2, ['d', 'm', 'l'])
-        c.rect(2, 9, 19, 11, 'C')                  # 속에서 새는 빛
+        c.celtaper(11.0, 8, 18, 9.8, 9.2, body)
+        c.rect(2, 9, 19, 11, 'C')
         c.rect(2, 9, 19, 9, 'Y')
     else:
-        c.celsphere(11.0, 9.0, 9.6, 7.0, ['d', 'm', 'l'], lo=0.32, hi=0.74,
-                    clip=lambda x, y: y <= 9)
+        c.celsphere(11.0, 9.0, 9.6, 7.0, body, lo=0.32, hi=0.74, clip=lambda x, y: y <= 9)
         c.rect(1, 10, 20, 10, 'D')
-        c.celtaper(11.0, 11, 18, 9.8, 9.2, ['d', 'm', 'l'])
-        c.rect(10, 8, 12, 14, 'c')                 # 자물쇠
-        c.rect(10, 8, 10, 14, 'C')
-        c.rect(10, 8, 12, 8, 'C')
+        c.celtaper(11.0, 11, 18, 9.8, 9.2, body)
+        c.rect(10, 8, 12, 14, trim[0])                 # 자물쇠
+        c.rect(10, 8, 10, 14, trim[1])
+        c.rect(10, 8, 12, 8, trim[1])
         c.put(11, 11, 'k')
-    for bx in (4, 16):                             # 쇠띠
+    for bx in (4, 16):                                 # 띠
         for y in range(1, 19):
-            if c.get(bx, y) in 'dml':
-                c.put(bx, y, 'I')
-            if c.get(bx + 1, y) in 'dml':
-                c.put(bx + 1, y, 'i')
+            if c.get(bx, y) in body:
+                c.put(bx, y, trim[1])
+            if c.get(bx + 1, y) in body:
+                c.put(bx + 1, y, trim[0])
+    if tier == 'legend':                               # 전설 — 뚜껑에 박은 보석
+        c.put(11, 4, 'Y')
+        c.put(10, 5, 'C')
+        c.put(12, 5, 'C')
     c.ao('D', 'dm')
     c.outline('k')
     return c.rows()
 
 
-sprite('chest', 'chest')(lambda: _chest(False))
-sprite('chest.open', 'chest')(lambda: _chest(True))
+for _t in ('common', 'rare', 'legend'):
+    sprite(f'chest.{_t}', 'chest')(lambda t=_t: _chest(t))
+    sprite(f'chest.{_t}.open', 'chest')(lambda t=_t: _chest(t, True))
 
 
 # ============================ 배경 장식 ============================
@@ -718,13 +727,13 @@ PAL['frost'] = {'k': K, 'd': '#123f8c', 'm': '#3f8ae8', 'l': '#a8dcff', 'w': '#f
 
 def _shard():
     """위상조정탄 — 파랗고 길다. 궤적은 렌더러가 따로 그린다."""
-    c = Cv(24, 7)
-    c.rect(10, 2, 21, 4, 'm')
-    c.rect(10, 2, 21, 2, 'l')
-    c.rect(19, 2, 22, 4, 'w')
-    c.put(23, 3, 'w')
-    for i in range(10):
-        c.put(9 - i, 3, 'l' if i < 3 else ('m' if i < 6 else 'd'))
+    c = Cv(28, 7)
+    c.rect(14, 2, 25, 4, 'm')
+    c.rect(14, 2, 25, 2, 'l')
+    c.rect(23, 2, 26, 4, 'w')
+    c.put(27, 3, 'w')
+    for i in range(14):
+        c.put(13 - i, 3, 'l' if i < 4 else ('m' if i < 8 else 'd'))
     c.outline('k')
     return c.rows()
 

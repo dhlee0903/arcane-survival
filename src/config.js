@@ -1,6 +1,6 @@
 // 먼 곳의 횃대 — 상수 (single source of truth).
 
-export const VERSION = 'v5.1';
+export const VERSION = 'v5.2';
 
 // 로직은 초당 60회 고정. 아래 값은 모두 "1스텝(1/60초)당" 기준이다.
 export const STEP_MS = 1000 / 60;
@@ -83,7 +83,7 @@ export const GEM_CAP = 150;     // 넘치면 먼 것부터 합친다(값은 보�
 //   kind : shot(직선탄) · nova(자폭 폭발) · mortar(발밑에 떨어지는 곡사) · laser(즉발 광선)
 export const ENEMY = {
   // 원작 수치를 그대로 옮기면(레무리안 80 · 타이탄 2100) 이쪽 밀도에서는 벽이 된다.
-  // 서열과 성격만 가져왔다.
+  // 서열과 성격만 가져왔다. 해파리는 느릿느릿 다가와서 터진다.
   lemurian:  {
     hp: 10, speed: 1.02, dmg: 8, r: 7, gem: 0, knock: 0.7, clip: 'lemurian',
     atk: { kind: 'shot', n: 1, dmg: 5, speed: 1.9, cd: 220, wind: 36, range: 150, r: 4, spr: 'spit' },
@@ -94,7 +94,7 @@ export const ENEMY = {
     atk: { kind: 'shot', n: 3, spread: 0.26, dmg: 3, speed: 1.5, cd: 250, wind: 96, range: 190, keep: 120, r: 4, spr: 'ember' },
   },
   jellyfish: {
-    hp: 16, speed: 1.22, dmg: 6, r: 7, gem: 0, knock: 0.8, clip: 'jellyfish', boom: true,
+    hp: 16, speed: 0.62, dmg: 6, r: 7, gem: 0, knock: 0.8, clip: 'jellyfish', boom: true,
     // 닿으면 터진다. 죽을 때도 터지므로 근처에서 잡으면 같이 맞는다
     atk: { kind: 'nova', dmg: 10, rad: 34, cd: 0, wind: 0, range: 0 },
   },
@@ -176,3 +176,10 @@ export const CHEST_TIERS = [
   { id: 'rare', price: 60, weight: 0.30 },
   { id: 'legend', price: 140, weight: 0.08 },
 ];
+
+// 좌표 해시 — 저장하지 않아도 어디로 가든 같은 풍경·같은 자리에 물건이 있다
+export function hash2(x, y) {
+  let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
