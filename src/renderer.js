@@ -206,13 +206,24 @@ export class Renderer {
     for (const a of list) {
       if (a.player) { this.player(c, g); continue; }
       const name = frameAt(ENEMY[a.kind].clip, a.t);
+      this.shadow(c, a.x + this.ox, a.y + this.oy + a.r, a.r * 1.15);
       this.blit(c, name, a.x + this.ox, a.y + this.oy + a.r, { flip: a.face < 0, tint: a.flash > 0 });
       if (a.boss || a.elite) this.hpBar(c, a);
     }
   }
 
+  // 발밑 그림자 — 이게 없으면 스프라이트가 바닥에 붙지 않고 떠 보인다
+  shadow(c, x, y, rx) {
+    c.save();
+    c.globalAlpha = 0.34;
+    // 발끝보다 한 칸 아래에 둔다 — 스프라이트에 다 가려지면 있으나 마나다
+    ellipse(c, x, y + 1, rx, rx * 0.42, '#000000');
+    c.restore();
+  }
+
   player(c, g) {
     // 피격 직후엔 깜빡인다
+    this.shadow(c, g.px + this.ox, g.py + this.oy + PLAYER.r + 2, PLAYER.r * 1.3);
     if (g.hurtCd > 0 && Math.floor(g.hurtCd / 4) % 2 === 1) return;
     const face = g.faceX < 0;
     this.blit(c, g.anim.frame(), g.px + this.ox, g.py + this.oy + PLAYER.r + 2, { flip: face, tint: g.hurtCd > PLAYER.hurtCd - 6 });
