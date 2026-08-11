@@ -1,6 +1,6 @@
 // 마법사 서바이벌 상수 — single source of truth.
 
-export const VERSION = 'v1.5';
+export const VERSION = 'v1.6';
 
 // 로직은 초당 60회 고정. 아래 값은 모두 "1스텝(1/60초)당" 기준이다.
 export const STEP_MS = 1000 / 60;
