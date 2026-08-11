@@ -2,8 +2,11 @@
 // 여기서 정의한 모든 그림은 시작할 때 **하나의 스프라이트시트(아틀라스)**로 구워지고,
 // 이후 렌더러는 아틀라스에서 잘라 쓰기만 한다(drawImage의 9인자 형태).
 //
-//   '.'  투명       'k'  외곽선
+//   '.'  투명       'k'  외곽선(어느 팔레트든 검정 한 색이다)
 //   나머지 글자의 뜻은 팔레트(PAL)마다 다르다.
+//
+// 외곽선을 재질 색으로 물들이면 어두운 바닥에 묻혀 실루엣이 흐려진다.
+// 검게 따 줘야 그림이 배경에서 떨어져 나온다.
 //
 // 빛은 **왼쪽 위 한 곳**에서만 온다. 모든 그림이 같은 광원을 쓰기 때문에 아틀라스
 // 전체가 한 세트처럼 보인다. 그래서 좌우 대칭(mirror)은 쓰지 않는다 — 대칭인 그림은
@@ -19,168 +22,236 @@
 
 // ---- 팔레트 ----
 export const PAL = {
-  // 2배 해상도로 다시 찍은 마법사 — 계조를 넉넉히 뒀다(모자 4단 · 로브 4단 · 수염 3단)
-  wizard: {
-    k: '#120c22',
-    h: '#33217a', H: '#4d33a6', I: '#6f4fd8', J: '#9a7cff',
-    t: '#1d1244', r: '#2c1d63', R: '#3f2b8c', T: '#5a3fb8',
-    s: '#f5cfa8', S: '#d9a279', e: '#241a3d',
-    b: '#f2f5fc', B: '#cfd8e8', a: '#a3aec4',
-    w: '#6f4622', W: '#a2703c',
-    o: '#4fc9ff', O: '#ffffff', q: '#a8ecff',
-  },
-  // 슬라임 — 젤리 한 덩이. 속이 비쳐 보이도록 밝은 단을 넉넉히 뒀다
-  // 슬라임 — 젤리 한 덩이. 속이 비쳐 보이도록 밝은 단을 넉넉히 뒀다
   // 슬라임 — 젤리 한 덩이. 속이 비쳐 보이도록 밝은 단을 넉넉히 뒀다
   slime: {
-    k: '#06140b', d: '#0f3d1f', g: '#1b6330', G: '#2b8c45', H: '#46b45c',
-    L: '#7ddc86', l: '#ccffd2', e: '#08160e', E: '#eaffff',
+    k: '#000000', d: '#0d4a22', g: '#1a7a37', G: '#2ba84f', H: '#4ad468',
+    L: '#86f294', l: '#e2fff0', e: '#08160e', E: '#eaffff',
   },
   // 유령 — 차가운 흰빛 천. 아래로 갈수록 어두워진다
   ghost: {
-    k: '#120e2e', v: '#39468a', u: '#5566ab', g: '#8598d2', G: '#bccdf0',
-    L: '#eaf2ff', e: '#160f38', q: '#6fe0ff', Q: '#d8f8ff',
+    k: '#000000', v: '#3a4aa8', u: '#5a72cc', g: '#8ea8ec', G: '#c8daff',
+    L: '#f4f8ff', e: '#140d33', q: '#5fe8ff', Q: '#e2fbff',
   },
   // 박쥐 — 날개막(w~V)과 털(n~M)을 따로 나눴다
   bat: {
-    k: '#0a0716', w: '#241a3d', W: '#372a58', v: '#4d3c76', V: '#6a5695', n: '#2b2036',
-    N: '#463349', m: '#63506b', M: '#8a7590', e: '#ff5a63', E: '#ffe0e2', F: '#f4f0ff',
+    k: '#000000', w: '#2a1a56', W: '#3f2a80', v: '#5b3eb2', V: '#8462e0', n: '#2e2142',
+    N: '#4d3663', m: '#705589', M: '#9d84b4', e: '#ff5a63', E: '#ffe0e2', F: '#f4f0ff',
   },
   // 해골 — 뼈 4단 + 눈구멍에서 타는 불
   bone: {
-    k: '#0f0b1c', a: '#6d6754', B: '#9a947c', b: '#cec8ac', w: '#eee7cf', W: '#fffbec',
+    k: '#000000', a: '#7a7259', B: '#aaa286', b: '#dcd4b4', w: '#f6efd6', W: '#fffdf4',
     e: '#3a0d0d', q: '#ff6a3a', Q: '#ffd6a0', r: '#5c2418', R: '#8a3a24',
   },
   // 골렘 — 돌 6단, 이끼, 갈라진 틈의 용암
   stone: {
-    k: '#08100b', o: '#1d2a23', v: '#334539', S: '#516654', M: '#728a74', m: '#95aa93', h: '#c0d0b6',
+    k: '#000000', o: '#16241f', v: '#2b483e', S: '#436257', M: '#5f8474', m: '#83a892', h: '#b0cebc',
     g: '#2f6b30', G: '#4e9645', j: '#78c46a', d: '#8a3200', e: '#ff8a1a', E: '#ffe6a0',
   },
   // 리치 — 로브 5단 + 뼈 4단 + 왕관의 금
   lich: {
-    k: '#06040d', r: '#180e2c', R: '#281748', T: '#3a2468', U: '#4f3490', V: '#6b4cb8', a: '#8a8578', B: '#b8b2a0', w: '#eae4ce',
+    k: '#000000', r: '#1c0f3c', R: '#2f1a66', T: '#4a2ba4', U: '#6b41d8', V: '#9268f5', a: '#8a8578', B: '#b8b2a0', w: '#eae4ce',
     W: '#fffaea', e: '#1b0f38', q: '#4fe6ff', Q: '#e8ffff', c: '#a8791a', C: '#e8b52c', Y: '#fff0a0', o: '#8f4ce8', O: '#e0c0ff',
   },
-  gemBlue: { k: '#04101f', g: '#12508f', G: '#2b8de0', L: '#6fc4ff', l: '#d8f0ff', W: '#ffffff' },
-  gemGreen: { k: '#04150a', g: '#136b32', G: '#2fae55', L: '#75e08e', l: '#dcffe6', W: '#ffffff' },
-  gemRed: { k: '#1c0510', g: '#8e1f34', G: '#e04357', L: '#ff8e9a', l: '#ffe0e4', W: '#ffffff' },
-  heart: { k: '#2a0610', d: '#8e1f34', H: '#e04357', h: '#ff8e9a', l: '#ffe0e4' },
+  gemBlue: { k: '#000000', g: '#12508f', G: '#2b8de0', L: '#6fc4ff', l: '#d8f0ff', W: '#ffffff' },
+  gemGreen: { k: '#000000', g: '#136b32', G: '#2fae55', L: '#75e08e', l: '#dcffe6', W: '#ffffff' },
+  gemRed: { k: '#000000', g: '#8e1f34', G: '#e04357', L: '#ff8e9a', l: '#ffe0e4', W: '#ffffff' },
+  heart: { k: '#000000', d: '#8e1f34', H: '#e04357', h: '#ff8e9a', l: '#ffe0e4' },
   magnet: {
-    k: '#0e1220', v: '#3d4757', m: '#6c7a90', M: '#a6b3c6',
+    k: '#000000', v: '#3d4757', m: '#6c7a90', M: '#a6b3c6',
     l: '#e8eef8', r: '#8e1f34', R: '#e04357', p: '#ff9ea6',
   },
-  coin: { k: '#3a2405', d: '#8a5c10', c: '#c08c1c', C: '#f0bb2c', y: '#ffe07a', Y: '#fff6c8' },
+  coin: { k: '#000000', d: '#8a5c10', c: '#c08c1c', C: '#f0bb2c', y: '#ffe07a', Y: '#fff6c8' },
   // 항아리 — 구운 흙에 푸른 무늬
   pot: {
-    k: '#1d0f06', d: '#5c3418', c: '#84512a', C: '#a86c3e',
-    n: '#c98f60', l: '#e8c9a8', b: '#3f6fd8', B: '#8fc4ff',
+    k: '#000000', d: '#6b3a17', c: '#96592a', C: '#c07840',
+    n: '#e0a06c', l: '#f8ddb8', b: '#3f7ff0', B: '#9fd4ff',
   },
   // 상자 — 나무 · 쇠띠 · 금자물쇠
   chest: {
-    k: '#170b03', d: '#3f2409', w: '#5f380f', W: '#8a5423', n: '#b5793a', l: '#d9a06a',
+    k: '#000000', d: '#4a2a08', w: '#6e4110', W: '#9c6026', n: '#c98944', l: '#efb87c',
     i: '#2f3742', I: '#59657a', S: '#8e9bb0', c: '#c08c1c', C: '#ffd23f', Y: '#fff2b8',
   },
   rock: {
-    k: '#0b120d', o: '#1f2b23', v: '#36483c', S: '#546a57',
+    k: '#000000', o: '#1f2b23', v: '#36483c', S: '#546a57',
     M: '#758b76', m: '#9aae97', g: '#3a7a36', G: '#5aa84e',
   },
-  tuft: { k: '#0c2011', g: '#2b6b2c', G: '#3f8f3a', j: '#63bb52', y: '#a8d86a' },
+  tuft: { k: '#000000', g: '#2b6b2c', G: '#3f8f3a', j: '#63bb52', y: '#a8d86a' },
   fungus: {
-    k: '#20090e', d: '#7a1f2a', r: '#c03040', R: '#f05464',
+    k: '#000000', d: '#7a1f2a', r: '#c03040', R: '#f05464',
     p: '#ffb0b8', s: '#9a8a70', S: '#cdbfa2', l: '#efe4cf',
   },
-  flower: { k: '#241f0c', y: '#c08c1c', Y: '#ffd23f', c: '#fff2b8', w: '#f0e8ff', g: '#2b6b2c', G: '#3f8f3a' },
-  bones: { k: '#14121e', a: '#4f4c40', B: '#6b6757', b: '#8f8a76', w: '#b0aa93' },
+  flower: { k: '#000000', y: '#c08c1c', Y: '#ffd23f', c: '#fff2b8', w: '#f0e8ff', g: '#2b6b2c', G: '#3f8f3a' },
+  bones: { k: '#000000', a: '#4f4c40', B: '#6b6757', b: '#8f8a76', w: '#b0aa93' },
   stump: {
-    k: '#150c05', d: '#33200a', w: '#4d3010', W: '#6f4620',
+    k: '#000000', d: '#33200a', w: '#4d3010', W: '#6f4620',
     n: '#96683a', l: '#c19a6b', g: '#2b6b2c', G: '#3f8f3a',
   },
   grave: {
-    k: '#0a0e13', o: '#242b34', v: '#3b4551', S: '#5b6673', M: '#7d8896',
+    k: '#000000', o: '#242b34', v: '#3b4551', S: '#5b6673', M: '#7d8896',
     m: '#a3adba', g: '#2b6b2c', G: '#3f8f3a', d: '#20261c',
   },
-  arcane: { k: '#180a3c', v: '#4a2ba8', o: '#6f45e0', q: '#a184ff', O: '#d9c8ff', W: '#ffffff' },
-  frost: { k: '#08203a', v: '#1c5a8c', b: '#2f8fc4', c: '#5fc8ee', C: '#a8e8ff', W: '#ffffff' },
-  rune: { k: '#241505', d: '#7a5416', p: '#a8791a', P: '#d9a01f', y: '#ffd23f', Y: '#fff6c8' },
-  fire: { k: '#3a0c00', d: '#8f2a00', f: '#d94e00', F: '#ff8a1a', y: '#ffc93f', Y: '#fff2b0' },
-  zap: { k: '#0d1a44', b: '#2b4fb8', z: '#5f9fff', Z: '#bfe0ff', W: '#ffffff' },
+  arcane: { k: '#000000', v: '#4a2ba8', o: '#6f45e0', q: '#a184ff', O: '#d9c8ff', W: '#ffffff' },
+  frost: { k: '#000000', v: '#1c5a8c', b: '#2f8fc4', c: '#5fc8ee', C: '#a8e8ff', W: '#ffffff' },
+  rune: { k: '#000000', d: '#7a5416', p: '#a8791a', P: '#d9a01f', y: '#ffd23f', Y: '#fff6c8' },
+  fire: { k: '#000000', d: '#8f2a00', f: '#d94e00', F: '#ff8a1a', y: '#ffc93f', Y: '#fff2b0' },
+  zap: { k: '#000000', b: '#2b4fb8', z: '#5f9fff', Z: '#bfe0ff', W: '#ffffff' },
   // 바닥 타일 — 다섯 단이 서로 가깝다. 벌어지면 칸 경계가 드러난다
-  ground: { a: '#2a3d24', b: '#31472a', c: '#3a5330', d: '#22331e', e: '#45613a' },
-  moss: { a: '#27391f', b: '#2d4325', c: '#37502b', d: '#1f3019', e: '#436138' },
+  ground: { a: '#2f4a26', b: '#38562d', c: '#426434', d: '#26401f', e: '#527f3d' },
+  moss: { a: '#2b4522', b: '#335029', c: '#3d5e30', d: '#233b1c', e: '#4c7639' },
   path: {
     a: '#3d3527', b: '#473d2d', c: '#524734', d: '#31291e',
     e: '#5e5139', g: '#2a3d24', G: '#31472a', h: '#22331e',
   },
   // 아이템 아이콘 — 공격·패시브가 같은 팔레트를 나눠 쓴다
   item: {
-    k: '#120d1e', r: '#8e1f34', R: '#e04357', p: '#ff9ea6', P: '#ffe0e4', g: '#166b32', G: '#33b558', j: '#7fe89b', b: '#1f4e9c', B: '#3f8ae8', C: '#9fd4ff', y: '#a8791a', Y: '#ffd23f',
+    k: '#000000', r: '#8e1f34', R: '#e04357', p: '#ff9ea6', P: '#ffe0e4', g: '#166b32', G: '#33b558', j: '#7fe89b', b: '#1f4e9c', B: '#3f8ae8', C: '#9fd4ff', y: '#a8791a', Y: '#ffd23f',
     c: '#fff2b8', d: '#8f2a00', o: '#ff8a1a', O: '#ffc93f', a: '#4a5265', w: '#98a3b8', W: '#e8eef8', m: '#4d3010', M: '#96683a', n: '#c19a6b', v: '#4a2ba8', V: '#8a63f0', X: '#d9c8ff',
+  },
+  // 마법사 — 로브 5단 · 수염 3단 · 살갗 3단 · 지팡이 구슬
+  wizard: {
+    k: '#000000', q: '#170a3c', r: '#26125e', R: '#3a2296', T: '#5533ce', U: '#7d5cf0', c: '#b8851f', C: '#ffd23f', Y: '#fff2b8', x: '#a9744c', S: '#d89a6a', s: '#f7cba0',
+    a: '#9aa6bd', B: '#cdd7ea', b: '#f4f8ff', w: '#5c3a19', W: '#8f6231', n: '#b98a4e', i: '#0b5c94', o: '#1f9fe0', O: '#5fd8ff', z: '#e6fbff', e: '#160e30',
   },
 };
 
-// ---- 마법사 (art:2 — 월드 15×18 자리를 30×36 도트로 찍었다) ----
-// 오른쪽을 보고 있다. 왼쪽으로 갈 때는 그릴 때 좌우로 뒤집는다.
-// 빛은 왼쪽 위에서 온다 — 모자 오른쪽 면과 로브 가운데가 밝고 가장자리가 어둡다.
-const WIZ_BODY = [
-  '........kkk...................',
-  '.......kIJIk..................',
-  '.......kHIJk..................',
-  '......kHHIJk......kkkk........',
-  '......kHHIJIk....kqqqqk.......',
-  '.....kHHHIJIk...kqOOOOqk......',
-  '.....kHHHIJIIk..kqOOOOqk......',
-  '....khHHHIJIIk..kqoOOoqk......',
-  '....khHHHIJIIIk..kqoooqk......',
-  '...khhHHHIJIIIk...kqqqk.......',
-  '...khhHHHHIJIIIk...kkk........',
-  '..khhhHHHHIJIIIk...kWk........',
-  '..khhhHHHHHIJIIIk..kWk........',
-  '.kkkkkkkkkkkkkkkkk.kWk........',
-  'kIIIIIIIIIIIIIIIIIkkWk........',
-  'khhhhhhhhhhhhhhhhhkkwk........',
-  'kkkkkkkkkkkkkkkkkkkkwk........',
-  '....kssssssssssk...kwk........',
-  '...ksssssssssssk...kwk........',
-  '...kssseeseesSSk...kwk........',
-  '...ksssssssSSSSk...kwk........',
-  '...kssbbbbbbbSSk...kwk........',
-  '..kbBbbbbbbbbbBak..kwk........',
-  '..kbbBbbbbbbBaak...kwk........',
-  '.krrbbbbbbbbbbbarkskwk........',
-  '.krRrbbbbbbbbbaRrkskwk........',
-  '.krRRrbbbbbbbaRRrk.kwk........',
-  '.krRTRrbbbbbaRTRrk.kwk........',
-  '.krRTTRrbbbaRTTRrk.kwk........',
-  '.krRTTTRraaRTTTRrk.kwk........',
-  '.krRTTTTRRTTTTTRrk.kwk........',
-  '.krRTTTTTTTTTTTRrk.kwk........',
-  '.krrRTTTTTTTTTRrrk.kwk........',
-  '.krrrRTTTTTTTRrrrk.kwk........',
-]
-
-// 아랫단(다리) 세 줄만 갈아 끼워 걸음을 만든다
-const WIZ_HEM = {
+// ---- 마법사 ----
+// 서 있는 자세 하나와 걸음 둘. lift를 번갈아 주면 걷는 동안 몸이 통통 튄다.
+const WIZ = {
   stand: [
-    '.krrttRTTTTTRttrrk.kwk........',
-    '..kttttttttttttk...kwk........',
-    '...kkkkkkkkkkkk....kkk........',
+    '.......kURk...................',
+    '.......kUUrk.......kkkk.......',
+    '.......kUUTqk.....kzzzOk......',
+    '.......kUUURqk...kzzzOOok.....',
+    '.......kUYUTrqk..kzzOOooik....',
+    '.......kCYCTRrqk.kOOOooiik....',
+    '.......kUCUUTRrqkkOoooiiik....',
+    '.......kUUUUTTRqqkoiiiiik.....',
+    '.......kUUUUTTRrqqkiiiik......',
+    '.......kCCCCCCcccccknWk.......',
+    '.......kccccccccccccnWk.......',
+    '......kTTTTTTRRRrrqqqWk.......',
+    '.......krrrrrrqqqqqqnWk.......',
+    '........kksxsssxSxkknwk.......',
+    '.........ksessSeSxkknWk.......',
+    '.........kssSSSSxxkknWk.......',
+    '.........kSSSSSxxxkknWk.......',
+    '.........kBSSxxxaxkknWk.......',
+    '........kkbbbBBBaakknWk.......',
+    '.......kTUbbbBBBaaqknWk.......',
+    '.......kTUbbbBBBaaqknWk.......',
+    '.......kTUbbbBBaaaTRqwk.......',
+    '.......kUUUbbBBaaUTRqWk.......',
+    '.......kUUUbbBBaaUTrqWk.......',
+    '.......kUUrbbBBaUUTrqWk.......',
+    '......kTUUrUbBBaUUTrqWk.......',
+    '......kTUUrUUTTRqUTqsWk.......',
+    '......kTUUrUUTTRqUsssSk.......',
+    '......kTUUrUUTTRqrssSxk.......',
+    '......kUUUrUUTTRqrSSxxk.......',
+    '......kUUrUUUTTRqrqqnWk.......',
+    '.....kTUUrUUUTTRqrqqqWk.......',
+    '.....kTUUrUUUTTRqrrqqWk.......',
+    '.....kTUUrUUUTTRRqrqqWk.......',
+    '.....kTUUrUUUTTRRqrqqWk.......',
+    '.....kCCCCCCCCcccccccWk.......',
+    '.....kqqqqqqqqqqqqqqqWk.......',
+    '......kkkRRRrkRRRrkkkk........',
+    '.......kRRRrrkRRrrqk..........',
+    '.......krrrqqkrrrqqk..........',
+    '........kkqqk.kqqkk...........',
+    '..........kk...kk.............',
   ],
   stepA: [
-    '.krrttRTTTTTRttrrk.kwk........',
-    '..kttttk..ktttttk..kwk........',
-    '..kkkkk....kkkkk...kkk........',
+    '.......kURk...................',
+    '.......kUUrk.......kkkk.......',
+    '.......kUUTqk.....kzzzOk......',
+    '.......kUUURqk...kzzzOOok.....',
+    '.......kUYUTrqk..kzzOOooik....',
+    '.......kCYCTRrqk.kOOOooiik....',
+    '.......kUCUUTRrqkkOoooiiik....',
+    '.......kUUUUTTRqqkoiiiiik.....',
+    '.......kUUUUTTRrqqkiiiik......',
+    '.......kCCCCCCcccccknWk.......',
+    '.......kccccccccccccnWk.......',
+    '......kTTTTTTRRRrrqqqWk.......',
+    '.......krrrrrrqqqqqqnWk.......',
+    '........kksxsssxSxkknwk.......',
+    '.........ksessSeSxkknWk.......',
+    '.........kssSSSSxxkknWk.......',
+    '.........kSSSSSxxxkknWk.......',
+    '.........kBSSxxxaxkknWk.......',
+    '.........kbbbBBBaakknWk.......',
+    '.........kbbbBBBaaqqnWk.......',
+    '........kTbbbBBBaarqnWk.......',
+    '........kTbbbBBaaaTRqwk.......',
+    '........kTUbbBBaaUTRqWk.......',
+    '........kUUbbBBaaUTrqWk.......',
+    '........kUUbbBBaUUTrqWk.......',
+    '........kUUrbBBaUUTrqWk.......',
+    '.......kTUUrUUUTqUTqsWk.......',
+    '.......kTUUrUUUTqUsssSk.......',
+    '.......kTUUrUUTTTqssSxk.......',
+    '.......kTUUrUUTTTqSSxxk.......',
+    '.......kTUUrUUTTTqrrqqk.......',
+    '.......kUUrUUUTTTqrrqqk.......',
+    '.......kUUrUUUTTTRqrqqk.......',
+    '......kTUUrUUUTTTRqrqqk.......',
+    '......kTUUrUUUTTRRqrqqk.......',
+    '......kCCCCCCCcccccccck.......',
+    '......kqqqqqqqqqqqqqqqk.......',
+    '......kRRRrkkkRRRrkkkk........',
+    '......kRRrrqkkRRrrqk..........',
+    '......krrrqqkkrrrqqk..........',
+    '.......kqqqk..kqqkk...........',
+    '........kkk....kk.............',
   ],
   stepB: [
-    '.krrttRTTTTTRttrrk.kwk........',
-    '..kttttttk..kttttk.kwk........',
-    '..kkkkkkk...kkkkk..kkk........',
+    '.......kURk...................',
+    '.......kUUrk.......kkkk.......',
+    '.......kUUTqk.....kzzzOk......',
+    '.......kUUURqk...kzzzOOok.....',
+    '.......kUYUTrqk..kzzOOooik....',
+    '.......kCYCTRrqk.kOOOooiik....',
+    '.......kUCUUTRrqkkOoooiiik....',
+    '.......kUUUUTTRqqkoiiiiik.....',
+    '.......kUUUUTTRrqqkiiiik......',
+    '.......kCCCCCCcccccknWk.......',
+    '.......kccccccccccccnWk.......',
+    '......kTTTTTTRRRrrqqqWk.......',
+    '.......krrrrrrqqqqqqnWk.......',
+    '........kksxsssxSxkknwk.......',
+    '.........ksessSeSxkknWk.......',
+    '.........kssSSSSxxkknWk.......',
+    '.........kSSSSSxxxkknWk.......',
+    '.........kBSSxxxaxkknWk.......',
+    '.......kkkbbbBBBaakknWk.......',
+    '......kTUUbbbBBBaakknWk.......',
+    '......kTUUbbbBBBaakknWk.......',
+    '......kUUUbbbBBaaaTRqwk.......',
+    '......kUUUUbbBBaaUTRqWk.......',
+    '.....kTUUUUbbBBaaUTrqWk.......',
+    '.....kTUUrUbbBBaUUTrqWk.......',
+    '.....kTUUrUUbBBaUUTrqWk.......',
+    '.....kTUUrUUTTqRqUTqsWk.......',
+    '.....kUUUrUUTTqRqUsssSk.......',
+    '.....kUUUrUUTTRqrqssSxk.......',
+    '.....kUUrUUUTTRqrqSSxxk.......',
+    '....kTUUrUUUTTRqrqqknWk.......',
+    '....kTUUrUUUTTRqrqqknWk.......',
+    '....kTUUrUUUTTRqrqqknWk.......',
+    '....kTUUrUUUTTRqrqqqnWk.......',
+    '....kTUUrUUTTTRRqqqqnWk.......',
+    '....kCCCCCCCCCccccccnWk.......',
+    '....kqqqqqqqqqqqqqqqnWk.......',
+    '.....kkkkRRRrkkkRRRrkk........',
+    '.......kRRRrrkkRRRrqk.........',
+    '.......krrrqqkkrrrqqk.........',
+    '........kkqqk..kqqqk..........',
+    '..........kk....kkk...........',
   ],
 };
 
-const wiz = (hem, lift) => ({ pal: 'wizard', art: 2, rows: [...WIZ_BODY, ...WIZ_HEM[hem]], lift });
-
-
-
+const wiz = (pose, lift) => ({ pal: 'wizard', art: 2, lift, rows: WIZ[pose] });
 
 // ---- 프레임 목록 ----
 // name → { pal, rows, art?, lift?, flat? }
@@ -1800,6 +1871,18 @@ function paintFrame(ctx, m, ox, oy) {
   }
 }
 
+// 외곽선('k')만 다시 찍는다 — 흰 사본에서 실루엣을 살리는 데 쓴다
+function paintOutline(ctx, m, ox, oy) {
+  const top = oy + (m.flat || m.lift ? 0 : (m.art || 1));
+  ctx.fillStyle = PAL[m.pal].k;
+  for (let y = 0; y < m.rows.length; y += 1) {
+    const row = m.rows[y];
+    for (let x = 0; x < row.length; x += 1) {
+      if (row[x] === 'k') ctx.fillRect(ox + x, top + y, 1, 1);
+    }
+  }
+}
+
 export function buildSheet() {
   const problems = validateMaps();
   if (problems.length) console.error('스프라이트 픽셀맵 오류:\n' + problems.join('\n'));
@@ -1828,15 +1911,18 @@ export function buildSheet() {
   ctx.imageSmoothingEnabled = false;
   for (const name of order) paintFrame(ctx, MAPS[name], frames[name].x, frames[name].y);
 
-  // 피격 순간에 쓸 흰 실루엣 — 같은 좌표계라 프레임 표를 그대로 쓴다
+  // 피격 순간에 쓸 흰 사본 — 같은 좌표계라 프레임 표를 그대로 쓴다.
+  // 통째로 하얗게 칠하면 형태가 사라져 옛날 게임처럼 보인다. 외곽선은 검게 남긴다.
   const tinted = document.createElement('canvas');
   tinted.width = canvas.width;
   tinted.height = canvas.height;
   const tc = tinted.getContext('2d');
   tc.drawImage(canvas, 0, 0);
   tc.globalCompositeOperation = 'source-atop';
-  tc.fillStyle = 'rgba(255,255,255,.88)';
+  tc.fillStyle = 'rgba(255,255,255,.86)';
   tc.fillRect(0, 0, tinted.width, tinted.height);
+  tc.globalCompositeOperation = 'source-over';
+  for (const name of order) paintOutline(tc, MAPS[name], frames[name].x, frames[name].y);
 
   return { canvas, tinted, frames };
 }
