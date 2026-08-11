@@ -282,7 +282,18 @@ export class Renderer {
       const x = s.x + this.ox;
       const y = s.y + this.oy;
       if (s.kind === 'shot') {
-        this.blit(c, s.spr, x, y, { mid: true });
+        // 적탄도 날아가는 방향으로 돌려 그린다
+        const f = this.frames[s.spr];
+        if (f) {
+          const art = f.art || 1;
+          c.save();
+          c.translate(Math.round(x), Math.round(y));
+          c.rotate(Math.atan2(s.vy, s.vx));
+          c.imageSmoothingEnabled = false;
+          c.drawImage(this.sheet, f.x, f.y, f.w, f.h,
+            -f.w / art / 2, -f.h / art / 2, f.w / art, f.h / art);
+          c.restore();
+        }
         continue;
       }
       // 곡사 — 떨어질 자리를 미리 그려 준다. 보고 비켜서라고 두는 표식이다

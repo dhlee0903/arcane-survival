@@ -45,9 +45,9 @@ CGEAR = ['a', 'w', 'W']
 
 
 def _commando(pose):
-    """노란 헬멧에 주황 우주복. 총열이 길어 어느 쪽을 겨누는지 한눈에 보인다."""
+    """노란 우주 헬멧(머리 전체를 덮는다)에 주황 우주복. 원작처럼 **쌍권총**을 든다."""
     c = Cv(32, 32)
-    cx = 13.0
+    cx = 13.5
     step = {'stand': 0, 'stepA': 1, 'stepB': -1}[pose]
 
     # 다리
@@ -57,23 +57,26 @@ def _commando(pose):
         c.rect(lx - 2.2, 30, lx + 2.2, 31, 'D')
     # 몸통 — 우주복
     c.celtaper(cx + step * 0.6, 16, 28, 5.6, 7.0, CCOAT, curve=0.85)
-    c.rect(cx - 5, 20, cx + 5, 21, 'D')            # 허리 벨트
-    c.rect(cx - 2, 17, cx + 2, 19, 'a')            # 가슴 장비
+    c.rect(cx - 5, 20, cx + 5, 21, 'D')                  # 허리 벨트
+    c.rect(cx - 2, 17, cx + 2, 19, 'a')                  # 가슴 장비
     c.rect(cx - 2, 17, cx + 2, 17, 'w')
-    # 총 — 총열이 길게 앞으로 뻗는다
-    c.rect(cx + 4, 18.5, cx + 15, 20.5, 'w')       # 총열
-    c.rect(cx + 4, 18.5, cx + 15, 18.5, 'W')
-    c.rect(cx + 13, 17.5, cx + 16, 21.5, 'a')      # 총구
-    c.rect(cx + 2, 18, cx + 6, 22, 'a')            # 총몸
-    c.celsphere(cx + 4.5, 21.5, 2.4, 2.2, CSKIN)   # 앞손
-    c.celsphere(cx - 5.5, 20.0, 2.4, 2.2, CSKIN)   # 뒷손
-    # 헬멧 — 노랗고 둥글다. 바이저 한 줄이 표정 전부다
-    c.celsphere(cx, 9.0, 7.4, 7.4, ['r', 'R', 'p'], lo=0.32, hi=0.72)
-    c.rect(cx - 7, 15.5, cx + 7, 16.5, 'D')        # 목 링
-    c.rect(cx - 5.5, 8.0, cx + 5.5, 11.5, 'a')     # 바이저 틀
-    c.rect(cx - 4.5, 8.5, cx + 4.5, 10.8, 'q')
-    c.rect(cx - 4.5, 8.5, cx - 1.0, 9.2, 'Q')      # 반사
-    c.rect(cx - 1, 2.5, cx + 1, 4.5, 'w')          # 헬멧 안테나
+    # 쌍권총 — 양손에 하나씩. 앞쪽 총이 조금 앞으로 나간다
+    for side, fwd in ((-1, 0), (1, 3)):
+        gx = cx + side * 6.6 + fwd
+        gy = 20.0 - (1 if side > 0 else 0)
+        c.celsphere(gx, gy + 1.6, 2.2, 2.0, CSKIN)       # 손
+        c.rect(gx - 0.6, gy - 1.4, gx + 4.4, gy + 0.4, 'w')   # 총열
+        c.rect(gx - 0.6, gy - 1.4, gx + 4.4, gy - 1.4, 'W')
+        c.rect(gx + 4.4, gy - 1.8, gx + 5.4, gy + 0.8, 'a')   # 총구
+        c.rect(gx - 1.6, gy - 1.4, gx - 0.6, gy + 2.2, 'a')   # 손잡이
+    # 헬멧 — 머리 전체를 덮는 노란 구. 바이저는 앞면 절반
+    c.celsphere(cx, 9.0, 8.0, 8.0, ['r', 'R', 'p'], lo=0.32, hi=0.72)
+    c.rect(cx - 7, 15.5, cx + 7, 16.5, 'D')              # 목 링
+    c.celsphere(cx + 0.6, 9.4, 5.8, 4.6, ['a', 'a', 'a'])     # 바이저 틀
+    c.celsphere(cx + 0.6, 9.4, 5.0, 3.8, ['q', 'q', 'Q'])     # 유리
+    c.rect(cx - 3.5, 7.4, cx - 0.5, 8.4, 'Q')            # 반사
+    c.rect(cx - 1, 0.5, cx + 1, 2.5, 'w')                # 안테나
+    c.put(cx, 0, 'Q')
     c.ao('D', 'dm')
     c.outline('k')
     return c.rows(trim=False)
@@ -87,38 +90,43 @@ for _n, _p in (('commando.stand', 'stand'), ('commando.stepA', 'stepA'), ('comma
 # 두 발로 서는 작은 주황 도마뱀. 물어뜯고 불덩이를 뱉는다.
 PAL['lemurian'] = {
     'k': K, 'D': '#2c0f4a', 'd': '#5a2199', 'm': '#8b45d6', 'l': '#c08cff',
-    'b': '#f4e4c8', 'e': '#160c08', 'q': '#ffd23f', 'Q': '#fff6c0',
+    'b': '#f4e4c8', 'B': '#cbb9a0', 'e': '#160c08', 'q': '#ffd23f', 'Q': '#fff6c0',
 }
 LEM = ['d', 'm', 'l']
 
 
 def _lemurian(step):
-    c = Cv(28, 26)
-    cx = 13.0
+    """날씬한 2족 도마뱀. 배는 희고 꼬리는 길다."""
+    c = Cv(30, 26)
+    cx = 15.0
     lean = 1 if step else 0
-    # 꼬리 — 뒤로 길게 뻗는다
-    for i in range(11):
-        t = i / 10
-        c.put(cx - 6 - i, 20 - int(t * t * 5) + lean, 'd' if i > 5 else 'm')
-        c.put(cx - 6 - i, 21 - int(t * t * 5) + lean, 'D')
-    # 다리
+    # 꼬리 — 뒤로 길게 뻗어 살짝 처진다
+    for i in range(14):
+        t = i / 13
+        x = cx - 5 - i
+        y = 18 - int(t * 2) + int(t * t * 6) + lean
+        c.put(x, y, 'm' if i < 7 else 'd')
+        c.put(x, y + 1, 'd' if i < 9 else 'D')
+    # 다리 — 무릎이 뒤로 꺾인 새 다리
     for side, ahead in ((-1, step), (1, 1 - step)):
-        lx = cx + side * 2.6
-        c.rect(lx - 1.4, 20, lx + 1.4, 23 - ahead, 'm')
-        c.rect(lx - 2.0, 24 - ahead, lx + 2.4, 25 - ahead, 'd')
-    # 몸통 — 앞으로 숙인 자세
-    c.celtaper(cx, 11, 21, 4.6, 5.6, LEM, curve=0.9)
-    # 머리 — 크고 주둥이가 앞으로 튀어나온다
-    c.celsphere(cx + 2.0, 7.5, 6.4, 5.6, LEM)
-    c.rect(cx + 6, 8, cx + 10, 10, 'm')              # 주둥이
-    c.rect(cx + 6, 8, cx + 10, 8, 'l')
-    c.rect(cx + 6, 11, cx + 10, 11, 'd')
-    for x in range(int(cx) + 6, int(cx) + 10, 2):    # 이빨
-        c.put(x, 10, 'b')
-    c.eyes([(cx + 2, 5)], 'e', 'q', w=3, h=3)
-    c.put(cx + 2, 5, 'Q')
-    for i in range(4):                               # 등지느러미
-        c.put(cx - 3 - i * 0.6, 10 - i * 0.2 + i, 'd')
+        lx = cx + side * 2.0
+        c.rect(lx - 1.2, 18, lx + 1.2, 20 - ahead, 'm')
+        c.rect(lx - 1.2, 21 - ahead, lx + 1.2, 23 - ahead, 'd')
+        c.rect(lx - 1.8, 24 - ahead, lx + 2.2, 25 - ahead, 'D')
+    # 몸통 — 앞으로 기운 날씬한 통. 배가 희다
+    c.celtaper(cx, 9, 19, 3.6, 4.4, LEM, curve=0.9)
+    for y in range(11, 19):                              # 흰 배
+        c.rect(cx + 1, y, cx + 3.4, y, 'b')
+        c.put(cx + 3.4, y, 'B')
+    # 목과 머리 — 주둥이가 짧고 갸름하다
+    c.celtaper(cx + 2.5, 6, 10, 2.2, 3.0, LEM)
+    c.celsphere(cx + 3.6, 5.0, 4.2, 3.4, LEM)
+    c.rect(cx + 6, 5.4, cx + 8.4, 6.6, 'm')              # 짧은 주둥이
+    c.rect(cx + 6, 5.4, cx + 8.4, 5.4, 'l')
+    c.rect(cx + 6, 7.0, cx + 8.2, 7.0, 'b')              # 아래턱
+    c.eyes([(cx + 3.4, 3.6)], 'e', 'q', w=2, h=2)
+    for i in range(4):                                   # 등지느러미
+        c.put(cx - 0.6 - i * 0.4, 8 + i * 1.6, 'd')
     c.ao('D', 'dm')
     c.outline('k')
     return c.rows()
@@ -138,30 +146,29 @@ PAL['wisp'] = {
 
 
 def _wisp(ph):
-    """레서 위습 — 몸 전체가 타오르는 불덩이. 심지가 붉고 겉이 노랗다."""
+    """레서 위습 — 둥글게 뭉친 불덩이. 위로만 혀가 솟고 아래로는 늘어지지 않는다."""
     import math as _m
-    c = Cv(24, 28)
-    cx, cy = 11.5, 15.0
-    # 통째로 타는 불꽃 — 위로 갈수록 좁아지며 흔들린다
-    for y in range(0, 27):
-        t = 1 - y / 26
-        half = 8.2 * _m.sin((1 - t) * 2.1) ** 0.7 if y > 0 else 0
-        if t > 0.55:
-            half *= (1 - (t - 0.55) / 0.45) * 1.15
-        wob = _m.sin(y * 0.55 + ph * 1.7) * (1.6 * t)
+    c = Cv(24, 24)
+    cx, cy = 11.5, 14.5
+    # 불덩이 — 아래는 둥글게 닫고 위로만 불꽃이 솟는다
+    for y in range(0, 23):
+        if y >= 7:
+            t = (y - 7) / 15
+            half = 8.0 * _m.sqrt(max(0.0, 1 - (t * 1.06 - 0.32) ** 2 / 0.62))
+            wob = 0
+        else:
+            t = 1 - y / 7
+            half = 5.2 * _m.sin((1 - t) * 1.9) ** 0.7
+            wob = _m.sin(y * 0.8 + ph * 1.7) * 1.5 * t
         for x in range(int(round(cx + wob - half)), int(round(cx + wob + half)) + 1):
-            nx = (x + 0.5 - cx - wob) / max(1.0, half)
-            d = abs(nx)
-            ch = 'm' if d > 0.72 else ('o' if d > 0.42 else 'y')
-            if d < 0.2 and y > 12:
+            d = abs((x + 0.5 - cx - wob) / max(1.0, half))
+            ch = 'm' if d > 0.74 else ('o' if d > 0.44 else 'y')
+            if d < 0.24 and y > 9:
                 ch = 'w'
-            if y > 20 and d > 0.55:
-                ch = 'd'
             c.put(x, y, ch)
     # 심지 — 가운데가 검붉게 뭉쳐 있다
-    c.celsphere(cx, cy + 1.0, 5.0, 5.4, ['D', 'd', 'm'], lo=0.30, hi=0.70)
-    # 눈 — 불색 그대로
-    c.eyes([(cx - 4.0, cy - 2), (cx + 1.5, cy - 2)], 'o', 'w', w=3, h=3)
+    c.celsphere(cx, cy, 4.8, 4.8, ['D', 'd', 'm'], lo=0.30, hi=0.70)
+    c.eyes([(cx - 3.8, cy - 2), (cx + 1.4, cy - 2)], 'o', 'w', w=3, h=3)
     c.outline('k')
     return c.rows()
 
