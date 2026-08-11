@@ -325,11 +325,14 @@ export class Renderer {
 
   // ---- HUD ----
   hud(c, g) {
-    // 경험치 막대 — 맨 위 한 줄
-    c.fillStyle = '#0b0718';
-    c.fillRect(0, 0, view.w, 4);
-    c.fillStyle = '#a371f7';
-    c.fillRect(0, 0, Math.round((g.xp / g.xpNext) * view.w), 3);
+    // 경험치 막대 — 맨 위 한 줄. 위에 밝은 선을 한 줄 얹어 유리처럼 보이게 한다
+    c.fillStyle = '#000000';
+    c.fillRect(0, 0, view.w, 5);
+    const xw = Math.round((g.xp / g.xpNext) * view.w);
+    c.fillStyle = '#7a52e0';
+    c.fillRect(0, 0, xw, 4);
+    c.fillStyle = '#c8a8ff';
+    c.fillRect(0, 0, xw, 1);
 
     // 남은 시간 — 가장 중요한 정보라 맨 위 가운데를 통째로 준다.
     // 좁은 화면에서 체력·레벨과 겹치지 않도록 아래 줄부터 나머지를 깐다.
@@ -340,17 +343,25 @@ export class Renderer {
 
     // 체력 — 오른쪽 위는 설정 버튼 자리라 왼쪽에 모아 둔다
     const hw = Math.round(Math.min(78, view.w * 0.34));
-    c.fillStyle = '#0b0718';
-    c.fillRect(4, 18, hw + 2, 8);
-    c.fillStyle = g.hp / g.maxHp < 0.3 ? '#ff5a63' : '#3fce6a';
-    c.fillRect(5, 19, Math.max(0, Math.round((g.hp / g.maxHp) * hw)), 6);
-    this.text(c, `${Math.max(0, Math.ceil(g.hp))}/${Math.round(g.maxHp)}`, hw + 10, 19, '#9fb0c8', 1);
+    const low = g.hp / g.maxHp < 0.3;
+    c.fillStyle = '#000000';
+    c.fillRect(4, 18, hw + 4, 10);
+    c.fillStyle = '#241c3a';
+    c.fillRect(5, 19, hw + 2, 8);
+    const fill = Math.max(0, Math.round((g.hp / g.maxHp) * hw));
+    c.fillStyle = low ? '#c41f36' : '#1f9e46';
+    c.fillRect(6, 20, fill, 6);
+    c.fillStyle = low ? '#ff5a63' : '#3fce6a';
+    c.fillRect(6, 20, fill, 3);
+    // 숫자는 막대 안에 오른쪽으로 붙인다 — 밖으로 빼면 좁은 화면에서 시간과 겹친다
+    const hpTxt = `${Math.max(0, Math.ceil(g.hp))}/${Math.round(g.maxHp)}`;
+    this.text(c, hpTxt, 4 + hw - hpTxt.length * 6, 20, '#ffffff', 1);
 
-    this.text(c, `LV ${g.level}`, 5, 29, '#ffd23f', 1);
-    this.text(c, `KILL ${g.kills}`, 41, 29, '#9fb0c8', 1);
+    this.text(c, `LV ${g.level}`, 5, 31, '#ffd23f', 1);
+    this.text(c, `KILL ${g.kills}`, 41, 31, '#cfd8e8', 1);
     // 금화 — 항아리에서 나온다
-    this.blit(c, 'coin', 8, 43, { mid: true });
-    this.text(c, String(g.gold), 14, 40, '#ffd23f', 1);
+    this.blit(c, 'coin', 8, 45, { mid: true });
+    this.text(c, String(g.gold), 14, 42, '#ffd23f', 1);
 
     this.slots(c, g);
     this.text(c, VERSION, view.w - 24, view.h - 8, 'rgba(255,255,255,.3)', 1);
@@ -391,18 +402,22 @@ export class Renderer {
   }
 
   // 5×7 비트맵 글꼴. 한글 문구는 DOM 오버레이가 맡는다.
-  text(c, str, x, y, color, scale = 1) {
-    c.fillStyle = color;
-    let cx = Math.round(x);
-    for (const raw of String(str).toUpperCase()) {
-      const glyph = FONT[raw] || FONT[' '];
-      for (let gy = 0; gy < 7; gy += 1) {
-        const row = glyph[gy];
-        for (let gx = 0; gx < 5; gx += 1) {
-          if (row[gx] === '1') c.fillRect(cx + gx * scale, Math.round(y) + gy * scale, scale, scale);
+  // HUD 글씨는 그림자를 한 겹 깔고 찍는다 — 밝은 바닥 위에서도 글자가 뭉개지지 않는다
+  text(c, str, x, y, color, scale = 1, shadow = '#000000') {
+    for (const pass of shadow ? [shadow, color] : [color]) {
+      c.fillStyle = pass;
+      const oy = pass === color ? 0 : scale;
+      let cx = Math.round(x) + (pass === color ? 0 : scale);
+      for (const raw of String(str).toUpperCase()) {
+        const glyph = FONT[raw] || FONT[' '];
+        for (let gy = 0; gy < 7; gy += 1) {
+          const row = glyph[gy];
+          for (let gx = 0; gx < 5; gx += 1) {
+            if (row[gx] === '1') c.fillRect(cx + gx * scale, Math.round(y) + oy + gy * scale, scale, scale);
+          }
         }
+        cx += 6 * scale;
       }
-      cx += 6 * scale;
     }
   }
 
