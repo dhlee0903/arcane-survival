@@ -7,7 +7,6 @@
 // 공개된 값을 바꾸기만 한다. 콘솔을 지워도 게임은 그대로 돈다.
 
 import { view, areaScale, MAX_LV, RUN_SEC } from './config.js';
-import { WEAPON_IDS } from './weapons.js';
 import { PASSIVE_IDS } from './upgrades.js';
 
 const SPEEDS = [0, 0.25, 1, 2, 4];
@@ -33,7 +32,7 @@ export function attachDebug({ game, renderer, clock }) {
     </div>
     <div class="dbg-row">
       <button data-act="levelup">레벨업</button>
-      <button data-act="maxweapons">무기 만렙</button>
+      <button data-act="gold">골드 +200</button>
       <button data-act="maxpassives">아이템 만렙</button>
     </div>
     <div class="dbg-row">
@@ -95,9 +94,7 @@ export function attachDebug({ game, renderer, clock }) {
       case 'hitbox': renderer.showHitbox = !renderer.showHitbox; break;
       case 'sheet': renderer.showSheet = !renderer.showSheet; break;
       case 'levelup': game.xp = game.xpNext; break;
-      case 'maxweapons':
-        for (const id of WEAPON_IDS.slice(0, 5)) for (let i = 0; i < MAX_LV; i += 1) game.grantWeapon(id);
-        break;
+      case 'gold': game.gold += 200; break;
       case 'maxpassives':
         for (const id of PASSIVE_IDS.slice(0, 5)) for (let i = 0; i < MAX_LV; i += 1) game.grantPassive(id);
         break;

@@ -2,11 +2,10 @@
 // 모든 그림은 시작할 때 구운 **스프라이트시트 한 장**에서 잘라 쓴다(this.sheet).
 // 카메라는 항상 코만도를 화면 한가운데 둔다.
 
-import { view, setView, PLAYER, VERSION, GEM, ENEMY, RUN_SEC, MAX_WEAPONS, MAX_PASSIVES, MAX_LV } from './config.js';
-import { evolvableWeapon } from './weapons.js';
+import { view, setView, PLAYER, VERSION, GEM, ENEMY, RUN_SEC, MAX_PASSIVES, MAX_LV } from './config.js';
+import { SKILLS, SKILL_IDS } from './weapons.js';
 import { buildSheet, FONT } from './sprites.js';
 import { frameAt } from './anim.js';
-import { WEAPONS } from './weapons.js';
 import { PASSIVES } from './upgrades.js';
 
 const TILE = 16;
@@ -92,15 +91,15 @@ export class Renderer {
     this.patches(c, g);
     this.gems(c, g);
     this.drops(c, g);
-    this.flameRing(c, g);
     this.actors(c, g);
     this.projectiles(c, g);
-    this.grenades(c, g);
+    this.chests(c, g);
     this.enemyShots(c, g);
     this.beams(c, g);
     this.zaps(c, g);
     this.parts(c, g);
     if (this.showHitbox) this.hitboxes(c, g);
+    this.crosshair(c, g);
     this.stick(c, g);
     this.hud(c, g);
     if (this.showSheet) this.sheetOverlay(c);
@@ -185,18 +184,6 @@ export class Renderer {
     }
   }
 
-  flameRing(c, g) {
-    const id = g.weapons.willowisp ? 'willowisp' : (g.weapons.flame ? 'flame' : null);
-    if (!id) return;
-    const s = WEAPONS[id].lv[g.weapons[id] - 1];
-    const r = Math.round(s.rad * g.mods.area);
-    const x = g.px + this.ox;
-    const y = g.py + this.oy - 6;
-    c.save();
-    c.globalAlpha = 0.13 + (g.auraPulse > 0 ? 0.16 * (g.auraPulse / 14) : 0);
-    ellipse(c, x, y, r, r * 0.72, '#ff7a1a');
-    c.restore();
-  }
 
   // 적·플레이어를 y 순으로 그려 앞뒤가 맞게 한다
   actors(c, g) {
@@ -295,16 +282,20 @@ export class Renderer {
     }
   }
 
-  grenades(c, g) {
-    for (const gr of g.grenades) {
-      const u = Math.min(1, gr.t / gr.fall);
-      c.save();
-      c.globalAlpha = 0.3;
-      ellipse(c, gr.tx + this.ox, gr.ty + this.oy, gr.rad * u, gr.rad * u * 0.5, '#ff7a1a');
-      c.restore();
-      this.blit(c, 'grenade', (gr.px || gr.x) + this.ox, (gr.py || gr.y) + this.oy, { mid: true });
+  // 맵에 놓인 상자 — 값이 붙어 있고 골드가 모자라면 붉게 뜬다
+  chests(c, g) {
+    for (const ch of g.chests) {
+      const x = ch.x + this.ox;
+      const y = ch.y + this.oy;
+      this.shadow(c, x, y, 10);
+      this.blit(c, 'chest', x, y + Math.sin(ch.t * 0.05) * 0.5);
+      const enough = g.gold >= ch.price;
+      const label = `$${ch.price}`;
+      this.text(c, label, Math.round(x - label.length * 3), Math.round(y - 24),
+        enough ? '#ffd23f' : '#ff6a6a', 1);
     }
   }
+
 
   zaps(c, g) {
     for (const z of g.zaps) {
@@ -326,6 +317,31 @@ export class Renderer {
       c.fillRect(Math.round(p.x + this.ox), Math.round(p.y + this.oy), 2, 2);
     }
     c.globalAlpha = 1;
+  }
+
+  // 조준선 — 어디를 쏘는지 보여야 한다
+  crosshair(c, g) {
+    if (!g.aim && !(g.aimStick && g.aimStick.on)) return;
+    let x;
+    let y;
+    if (g.aimStick && g.aimStick.on) {
+      const a = Math.atan2(g.aimStick.dy, g.aimStick.dx);
+      x = view.w / 2 + Math.cos(a) * 46;
+      y = view.h / 2 + Math.sin(a) * 46;
+    } else {
+      x = g.aim.x;
+      y = g.aim.y;
+    }
+    c.strokeStyle = 'rgba(255,210,63,.85)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.arc(Math.round(x) + 0.5, Math.round(y) + 0.5, 4.5, 0, Math.PI * 2);
+    c.stroke();
+    c.fillStyle = '#ffd23f';
+    c.fillRect(Math.round(x), Math.round(y) - 7, 1, 3);
+    c.fillRect(Math.round(x), Math.round(y) + 5, 1, 3);
+    c.fillRect(Math.round(x) - 7, Math.round(y), 3, 1);
+    c.fillRect(Math.round(x) + 5, Math.round(y), 3, 1);
   }
 
   stick(c, g) {
@@ -411,20 +427,53 @@ export class Renderer {
     this.text(c, VERSION, view.w - 24, view.h - 8, 'rgba(255,255,255,.3)', 1);
   }
 
-  // 가진 것 — 두 줄로 나눈다. 위가 스킬, 아래가 아이템.
-  // 빈 칸도 그려서 앞으로 몇 개를 더 들 수 있는지 보이게 한다.
+  // 아래 줄 — 왼쪽에 스킬 셋(쿨타임이 차오른다), 오른쪽에 주운 아이템.
   slots(c, g) {
-    // 바뀔 준비가 끝난 스킬은 칸을 금색으로 물들여 알려준다(상자를 열면 바뀐다)
-    const ready = evolvableWeapon(g.weapons, g.passives, MAX_LV);
-    const weapons = Object.keys(g.weapons).map((id) => ({
-      icon: WEAPONS[id].icon,
-      lv: g.weapons[id],
-      hot: (ready && ready.from === id) || !!WEAPONS[id].evolved,
-    }));
-    const passives = Object.keys(g.passives).map((id) => ({ icon: PASSIVES[id].icon, lv: g.passives[id] }));
-    const y = view.h - SLOT * 2 - 6;
-    this.slotRow(c, y, MAX_WEAPONS, weapons, '#7ff0ff');
-    this.slotRow(c, y + SLOT + 1, MAX_PASSIVES, passives, '#ffb03a');
+    const y = view.h - SLOT - 4;
+    for (let i = 0; i < SKILL_IDS.length; i += 1) {
+      const id = SKILL_IDS[i];
+      const s = SKILLS[id];
+      const x = 4 + i * (SLOT + 2);
+      const cd = g.cds ? g.cds[id] : 0;
+      const full = id === 'primary' ? Math.max(6, Math.round(s.cd / (g.atkSpeed ? g.atkSpeed() : 1))) : s.cd;
+      c.fillStyle = 'rgba(11,7,24,.8)';
+      c.fillRect(x, y, SLOT, SLOT);
+      this.blit(c, s.icon, x + SLOT / 2, y + SLOT / 2, { mid: true });
+      if (cd > 0) {                              // 아직 안 찼으면 아래에서부터 덮는다
+        const h = Math.round((cd / full) * SLOT);
+        c.fillStyle = 'rgba(4,3,10,.72)';
+        c.fillRect(x, y, SLOT, h);
+      }
+      c.strokeStyle = cd > 0 ? 'rgba(255,255,255,.2)' : '#7ff0ff';
+      c.lineWidth = 1;
+      c.strokeRect(x + 0.5, y + 0.5, SLOT - 1, SLOT - 1);
+    }
+    // 회피
+    const dx = 4 + SKILL_IDS.length * (SLOT + 2) + 4;
+    c.fillStyle = 'rgba(11,7,24,.8)';
+    c.fillRect(dx, y, SLOT, SLOT);
+    if (g.cds && g.cds.dodge > 0) {
+      c.fillStyle = 'rgba(4,3,10,.72)';
+      c.fillRect(dx, y, SLOT, Math.round((g.cds.dodge / PLAYER.dodgeCd) * SLOT));
+    }
+    c.strokeStyle = g.cds && g.cds.dodge > 0 ? 'rgba(255,255,255,.2)' : '#7ff0ff';
+    c.strokeRect(dx + 0.5, y + 0.5, SLOT - 1, SLOT - 1);
+    this.text(c, 'SH', dx + 2, y + 4, '#cfd8e8', 1);
+
+    // 주운 아이템 — 오른쪽 아래에 늘어놓는다
+    const items = Object.keys(g.passives);
+    for (let i = 0; i < items.length; i += 1) {
+      const x = view.w - 4 - (items.length - i) * (SLOT + 1);
+      c.fillStyle = 'rgba(11,7,24,.8)';
+      c.fillRect(x, y, SLOT, SLOT);
+      c.strokeStyle = '#ffb03a';
+      c.lineWidth = 1;
+      c.strokeRect(x + 0.5, y + 0.5, SLOT - 1, SLOT - 1);
+      this.blit(c, PASSIVES[items[i]].icon, x + SLOT / 2, y + SLOT / 2, { mid: true });
+      c.fillStyle = 'rgba(11,7,24,.85)';
+      c.fillRect(x + SLOT - 6, y + SLOT - 8, 6, 8);
+      this.text(c, String(g.passives[items[i]]), x + SLOT - 5, y + SLOT - 7, '#ffd23f', 1);
+    }
   }
 
   slotRow(c, y, cap, items, tone) {

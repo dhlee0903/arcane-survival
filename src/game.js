@@ -8,11 +8,10 @@
 
 import {
   view, PLAYER, RUN_SEC, ENEMY, SCALE, GEM, gemTier, GEM_DRIFT, GEM_CAP,
-  DROP, HEART_HEAL, BARREL, COIN_VALUE, ESHOT_LIFE, xpNeed, MAX_LV, MAX_WEAPONS,
-  MAX_PASSIVES, PICK_COUNT, FX,
+  DROP, HEART_HEAL, BARREL, COIN_VALUE, ESHOT_LIFE, xpNeed, MAX_LV, MAX_PASSIVES, FX,
 } from './config.js';
-import { WEAPONS, WEAPON_IDS, statsOf, evolvableWeapon } from './weapons.js';
-import { modsOf, rollChoices } from './upgrades.js';
+import { SKILLS, SKILL_IDS } from './weapons.js';
+import { modsOf, rollItem, PASSIVES } from './upgrades.js';
 import { Spawner } from './spawner.js';
 import { Animator } from './anim.js';
 import { submitScore, addGold } from './storage.js';
@@ -71,14 +70,17 @@ export class Game {
     this.diveVy = 0;
     this.diveDmg = 0;
     this.muzzle = 0;       // 총구 화염
-    this.queue = [];       // 몇 스텝 뒤에 나갈 사격(더블 탭 · 제압 사격)
-    this.grenades = [];
+    this.queue = [];       // 몇 스텝 뒤에 나갈 사격(제압사격)
+    this.want = { primary: false, special: false, special2: false, dodge: false };
+    this.aim = null;       // 마우스 조준(화면 좌표)
+    this.aimStick = null;  // 터치 조준 스틱
+    this.cds = { primary: 0, special: 0, special2: 0, dodge: 0 };
+    this.chests = [];      // 맵에 흩어진 상자 — 찾아서 골드로 연다
+    this.chestCd = 60 * 8;
     this.potCd = 60 * 4;    // 첫 항아리는 조금 일찍
 
     // 시작 무기는 뱀서처럼 하나만 — 나머지는 레벨업으로 얻는다
-    this.weapons = { tap: 1 };
     this.passives = {};
-    this.wcd = { tap: 24 };
     this.mods = modsOf(this.passives);
 
     this.enemies = [];
@@ -97,7 +99,6 @@ export class Game {
     this.shake = 0;
     this.bannerText = '';
     this.bannerT = 0;
-    this.choices = [];
     this.eid = 1;
 
     this.spawner.reset();
@@ -124,8 +125,9 @@ export class Game {
       sec: Math.floor(this.t / 60),
       kills: this.kills,
       gold: this.gold,
+      cds: this.cds,
+      items: this.passives,
       level: this.level,
-      choices: this.choices,
     };
   }
 
@@ -146,7 +148,8 @@ export class Game {
     this.t += 1;
 
     this.movePlayer();
-    this.tickWeapons();
+    this.tickSkills();
+    this.tickChests();
     this.tickProjectiles();
     this.tickZaps();
     this.tickPatches();
@@ -155,7 +158,6 @@ export class Game {
     this.tickEnemies();
     this.tickEnemyShots();
     this.tickQueue();
-    this.tickGrenades();
     this.tickPickups();
     this.tickParts();
 
@@ -217,21 +219,100 @@ export class Game {
     this.anim.step(1);
   }
 
-  tickWeapons() {
-    for (const id of Object.keys(this.weapons)) {
-      const def = WEAPONS[id];
-      if (def.passive) continue;
-      const s = statsOf(id, this.weapons[id], this.mods);
-      this.wcd[id] = (this.wcd[id] || 0) - 1;
-      if (this.wcd[id] > 0) continue;
-      // 조건이 붙은 스킬(택티컬 다이브)은 쓸 상황이 아니면 대기시간을 소모하지 않는다
-      if (def.ready && !def.ready(this, s)) { this.wcd[id] = 6; continue; }
-      this.wcd[id] = s.cd;
-      def.fire(this, s);
-    }
+  // ---- 스킬 ----
+  // 자동 공격은 없다. 누른 것만 나간다. 기본공격은 누르고 있으면 계속 나간다.
+  atkSpeed() {
+    return 1 + (this.passives.syringe || 0) * 0.15;
   }
 
-  // 수호 룬 — 발사가 아니라 항상 돌고 있다
+  // 캐릭터 공격력 — 레벨과 아이템으로만 오른다(원작 코만도: 12 + 레벨당 2.4)
+  damage() {
+    return PLAYER.dmg + (this.level - 1) * PLAYER.dmgPerLevel;
+  }
+
+  // 조준 방향 — 마우스 · 터치 스틱 · 없으면 바라보는 쪽
+  aimDir() {
+    if (this.aimStick && this.aimStick.on && Math.hypot(this.aimStick.dx, this.aimStick.dy) > 4) {
+      return Math.atan2(this.aimStick.dy, this.aimStick.dx);
+    }
+    if (this.aim) {
+      // 화면 좌표 → 월드. 카메라는 늘 플레이어를 가운데 둔다
+      return Math.atan2(this.aim.y - view.h / 2, this.aim.x - view.w / 2);
+    }
+    return this.faceX >= 0 ? 0 : Math.PI;
+  }
+
+  shoot(dir, o) {
+    const a = dir + (o.spread ? (this.rnd() - 0.5) * o.spread * 2 : 0);
+    this.addProjectile({
+      x: this.px, y: this.py - 8, a, speed: o.speed,
+      dmg: Math.round(this.damage() * o.coef), pierce: o.pierce || 0, r: o.r,
+      clip: o.spr ? null : 'bullet', spr: o.spr, flip: Math.abs(a) > Math.PI / 2,
+      life: o.life || 110, grow: o.grow || 0, stagger: o.stagger || 0,
+    });
+    this.muzzle = 4;
+    if (dir !== undefined) this.faceX = Math.cos(dir) >= 0 ? 1 : -1;
+  }
+
+  tickSkills() {
+    for (const id of SKILL_IDS) if (this.cds[id] > 0) this.cds[id] -= 1;
+    if (this.cds.dodge > 0) this.cds.dodge -= 1;
+
+    if (this.want.dodge && this.cds.dodge <= 0 && this.diveT <= 0) {
+      this.cds.dodge = PLAYER.dodgeCd;
+      this.startDive({ dur: 18, dist: 62, dmg: 0 });
+    }
+    this.want.dodge = false;
+
+    if (this.diveT > 0) return;             // 구르는 동안은 못 쏜다
+    const dir = this.aimDir();
+    if (this.want.primary && this.cds.primary <= 0) {
+      this.cds.primary = Math.max(6, Math.round(SKILLS.primary.cd / this.atkSpeed()));
+      SKILLS.primary.fire(this, dir);
+    }
+    if (this.want.special && this.cds.special <= 0) {
+      this.cds.special = SKILLS.special.cd;
+      SKILLS.special.fire(this, dir);
+    }
+    if (this.want.special2 && this.cds.special2 <= 0) {
+      this.cds.special2 = SKILLS.special2.cd;
+      SKILLS.special2.fire(this, dir);
+    }
+    this.want.special2 = false;
+  }
+
+  // ---- 상자 ----
+  // 원작처럼 맵에 놓여 있고, 골드가 모자라면 못 연다. 찾아다녀야 한다.
+  chestPrice() {
+    return Math.round(25 * (1 + (this.t / 3600) * 0.55));
+  }
+
+  tickChests() {
+    this.chestCd -= 1;
+    if (this.chestCd <= 0 && this.chests.length < 4) {
+      this.chestCd = 60 * 14;
+      const a = this.rnd() * TAU;
+      const d = 150 + this.rnd() * 170;
+      this.chests.push({
+        x: this.px + Math.cos(a) * d, y: this.py + Math.sin(a) * d,
+        price: this.chestPrice(), t: 0,
+      });
+    }
+    for (const c of this.chests) {
+      c.t += 1;
+      const dx = this.px - c.x;
+      const dy = this.py - 6 - c.y;
+      if (dx * dx + dy * dy > 18 * 18) continue;
+      if (this.gold < c.price) { c.deny = 20; continue; }
+      this.gold -= c.price;
+      c.open = true;
+      const id = rollItem(this.rnd);
+      this.grantPassive(id);
+      this.banner(`${PASSIVES[id].name}`, 120);
+      this.spark(c.x, c.y, 20, '#ffd23f');
+    }
+    this.chests = this.chests.filter((c) => !c.open);
+  }
 
   addProjectile(p) {
     this.projectiles.push({
@@ -360,30 +441,6 @@ export class Game {
       q.fn(this);
     }
     this.queue = rest;
-  }
-
-  // 수류탄 — 던진 자리로 날아가 떨어지고, 터진 자리에 불이 남는다
-  tickGrenades() {
-    const alive = [];
-    for (const gr of this.grenades) {
-      gr.t += 1;
-      const u = Math.min(1, gr.t / gr.fall);
-      gr.px = gr.x + (gr.tx - gr.x) * u;
-      gr.py = gr.y + (gr.ty - gr.y) * u - Math.sin(u * Math.PI) * 26;   // 포물선
-      if (u < 1) { alive.push(gr); continue; }
-      for (const e of this.enemies) {
-        if (e.dead || e.prop) continue;
-        const dx = e.x - gr.tx;
-        const dy = e.y - gr.ty;
-        const rr = gr.rad + e.r;
-        if (dx * dx + dy * dy > rr * rr) continue;
-        this.damageEnemy(e, gr.dmg, { knock: 3.4, kx: dx, ky: dy });
-      }
-      this.patches.push({ x: gr.tx, y: gr.ty, r: gr.rad, dmg: gr.burn, life: gr.life, t: 0, tick: 0 });
-      this.spark(gr.tx, gr.ty, 16, '#ffb03a');
-      this.shake = Math.max(this.shake, 4);
-    }
-    this.grenades = alive;
   }
 
   // 택티컬 다이브 — 적 반대쪽으로 굴러 빠져나간다. 구르는 동안 무적
@@ -665,6 +722,8 @@ export class Game {
     e.dead = true;
     if (e.prop) { this.breakBarrel(e); return; }
     this.kills += 1;
+    // 골드는 처치에서 나온다 — 이게 있어야 상자를 열 수 있다(원작과 같은 순환)
+    this.gold += 2 + Math.floor(this.t / 3600) + (e.elite ? 12 : 0) + (e.boss ? 60 : 0);
     // 몬스터의 이빨 — 처치할 때마다 작은 회복 구슬이 떨어진다
     if (this.mods.tooth > 0) {
       this.drops.push({ kind: 'tooth', x: e.x, y: e.y, life: DROP.life, heal: 6 + this.mods.tooth * 2 });
@@ -811,75 +870,24 @@ export class Game {
     }
   }
 
-  // 상자 — 뱀서와 같은 규칙이다.
-  //   1) 대체 스킬 조합(만렙 스킬 + 지정 아이템)이 갖춰져 있으면 그 스킬이 바뀐다
-  //   2) 아니면 가진 무기 하나가 한 단계 오른다
-  //   3) 전부 만렙이면 회복
+  // 엘리트·보스가 떨구는 상자는 그 자리에서 열린다(맵에 놓인 상자와 달리 공짜다)
   openChest() {
-    const evo = evolvableWeapon(this.weapons, this.passives, MAX_LV);
-    if (evo) {
-      delete this.weapons[evo.from];
-      delete this.wcd[evo.from];
-      this.weapons[evo.into] = MAX_LV;
-      this.wcd[evo.into] = 10;
-      this.banner(`대체 스킬 · ${WEAPONS[evo.into].name}`, 160);
-      this.shake = Math.max(this.shake, 6);
-      this.spark(this.px, this.py - 8, 40, '#ffd23f');
-      return;
-    }
-    this.openChestLevel();
-  }
-
-  openChestLevel() {
-    const canLevel = Object.keys(this.weapons).filter((id) => this.weapons[id] < MAX_LV);
-    const canLearn = Object.keys(this.weapons).length < MAX_WEAPONS
-      ? WEAPON_IDS.filter((id) => !this.weapons[id]) : [];
-    const pool = canLevel.concat(canLearn);
-    if (!pool.length) {
-      this.hp = Math.min(this.maxHp, this.hp + 50);
-      this.banner('상자 · 회복 50', 100);
-      return;
-    }
-    const id = pool[Math.floor(this.rnd() * pool.length)];
-    this.grantWeapon(id);
-    this.banner(`상자 · ${WEAPONS[id].name} Lv ${this.weapons[id]}`, 110);
+    const id = rollItem(this.rnd);
+    this.grantPassive(id);
+    this.banner(`${PASSIVES[id].name}`, 120);
+    this.spark(this.px, this.py - 8, 24, '#ffd23f');
   }
 
   // ---- 성장 ----
+  // 카드를 고르는 일은 없다. 레벨은 체력과 공격력만 올린다(원작과 같다).
   levelUp() {
     this.xp -= this.xpNext;
     this.level += 1;
     this.xpNext = xpNeed(this.level);
-    this.choices = rollChoices(
-      { weapons: this.weapons, passives: this.passives },
-      PICK_COUNT,
-      this.rnd,
-    );
-    this.phase = 'levelup';
+    this.maxHp += PLAYER.hpPerLevel;
+    this.hp = Math.min(this.maxHp, this.hp + PLAYER.hpPerLevel);
+    this.banner(`LEVEL ${this.level}`, 70);
     this.emit();
-  }
-
-  choose(i) {
-    const c = this.choices[i];
-    if (!c) return;
-    if (c.kind === 'weapon') this.grantWeapon(c.id);
-    else if (c.kind === 'passive') this.grantPassive(c.id);
-    else this.hp = Math.min(this.maxHp, this.hp + 40);
-    this.choices = [];
-    // 남은 경험치로 곧바로 또 오를 수 있다 — 카드를 이어서 띄운다
-    if (this.xp >= this.xpNext) { this.levelUp(); return; }
-    this.phase = 'playing';
-    this.emit();
-  }
-
-  grantWeapon(id) {
-    if (!this.weapons[id]) {
-      if (Object.keys(this.weapons).length >= MAX_WEAPONS) return;
-      this.weapons[id] = 1;
-      this.wcd[id] = 12;
-    } else {
-      this.weapons[id] = Math.min(MAX_LV, this.weapons[id] + 1);
-    }
   }
 
   grantPassive(id) {

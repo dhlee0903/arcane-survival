@@ -1,6 +1,6 @@
 // 먼 곳의 횃대 — 상수 (single source of truth).
 
-export const VERSION = 'v4.0';
+export const VERSION = 'v5.0';
 
 // 로직은 초당 60회 고정. 아래 값은 모두 "1스텝(1/60초)당" 기준이다.
 export const STEP_MS = 1000 / 60;
@@ -34,7 +34,13 @@ export const RUN_SEC = 900;           // 15분
 
 // ---- 플레이어 ----
 export const PLAYER = {
-  hp: 100,
+  // 원작 코만도: 체력 110(+33/레벨) · 공격력 12(+2.4/레벨)
+  hp: 110,
+  dmg: 12,
+  dmgPerLevel: 2.4,
+  hpPerLevel: 12,
+  dodgeCd: 150,         // 회피(Shift) 재사용 대기
+
   r: 6,                 // 피격 반지름(그림보다 작게)
   speed: 1.5,           // 스텝당 이동 거리
   pickR: 40,            // 경험치 흡수 반지름
@@ -51,10 +57,8 @@ export function xpNeed(level) {
   return Math.max(4, Math.round(5 + n * 4.4 + n * n * 0.30));
 }
 
-export const MAX_WEAPONS = 5;
 export const MAX_PASSIVES = 5;
 export const MAX_LV = 6;              // 스킬·아이템 공통 최대 레벨
-export const PICK_COUNT = 3;          // 레벨업 때 고르는 카드 수
 
 // 경험치 보석 등급 — 적 종류가 어떤 등급을 떨구는지는 ENEMY.gem.
 // 보석은 실제 경험치 값을 들고 다니고, 등급은 그 값으로 정해진다(합쳐질 수 있으므로).

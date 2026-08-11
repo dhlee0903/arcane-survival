@@ -6,7 +6,7 @@ import { Renderer } from './renderer.js';
 import { InputController } from './input.js';
 import { STEP_MS, MAX_CATCHUP, RUN_SEC } from './config.js';
 import { getBest, mmss, totalGold } from './storage.js';
-import { evoRecipes } from './weapons.js';
+import { SKILLS, SKILL_IDS } from './weapons.js';
 import { PASSIVES } from './upgrades.js';
 import { attachDebug } from './debug.js';
 
@@ -14,7 +14,6 @@ const $ = (id) => document.getElementById(id);
 
 const renderer = new Renderer($('board'));
 const overlay = $('overlay');
-const levelup = $('levelup');
 const cardsEl = $('cards');
 const pauseEl = $('pause');
 const gearBtn = $('gear');
@@ -27,17 +26,18 @@ const game = new Game({ onState: handleState });
 new InputController($('board'), game);
 
 // 일시정지 화면에 대체 스킬 조합식을 깔아 둔다 — 안 보여주면 알 방법이 없다
+// 일시정지 화면에 스킬 셋을 깔아 둔다 — 쿨타임과 계수를 알 방법이 없으면 곤란하다
 function fillRecipes() {
   const box = $('recipes');
   if (box.childElementCount) return;
-  for (const r of evoRecipes()) {
+  for (const id of SKILL_IDS) {
+    const s = SKILLS[id];
     const row = document.createElement('div');
     row.className = 'recipe';
-    row.innerHTML = `<span class="rn">${r.from}</span><i>Lv6</i>`
-      + `<span class="plus">+</span><span class="rn">${PASSIVES[r.needs].name}</span>`
-      + `<span class="arrow">→</span><b>${r.into}</b>`;
-    row.prepend(iconCanvas(r.fromIcon, 1.5));
-    row.appendChild(iconCanvas(r.intoIcon, 1.5));
+    row.innerHTML = `<span class="rn">${s.name}</span><i>${s.key}</i>`
+      + `<span class="plus">·</span><span class="dim">${s.desc}</span>`
+      + `<b>${(s.cd / 60).toFixed(1)}초</b>`;
+    row.prepend(iconCanvas(s.icon, 1.5));
     box.appendChild(row);
   }
 }
@@ -63,28 +63,6 @@ function showOverlay(title, html, btn) {
 }
 
 // 레벨업 — 카드 세 장. 아이콘은 실제 스프라이트시트에서 잘라 그려 넣는다.
-// 카드마다 갈래(스킬 / 아이템)를 함께 찍어 뭘 고르는지 바로 보이게 한다.
-function showCards(choices, level) {
-  cardsEl.innerHTML = '';
-  choices.forEach((c, i) => {
-    const el = document.createElement('button');
-    el.className = 'card';
-    el.style.setProperty('--c', c.color);
-    el.innerHTML = `
-      <span class="ic"></span>
-      <span class="body">
-        <span class="grp">${c.group}</span>
-        <span class="nm">${c.name}<span class="tag">${c.tag}</span></span>
-        <span class="ln">${c.line}</span>
-      </span>`;
-    el.querySelector('.ic').appendChild(iconCanvas(c.icon));
-    el.onclick = () => game.choose(i);
-    cardsEl.appendChild(el);
-  });
-  $('luLevel').textContent = `LEVEL ${level}`;
-  levelup.classList.add('show');
-}
-
 function iconCanvas(name, mul = 3) {
   const f = renderer.frames[name];
   const s = mul / (f.art || 1);
@@ -98,8 +76,6 @@ function iconCanvas(name, mul = 3) {
 }
 
 function handleState(state, p) {
-  levelup.classList.toggle('show', state === 'levelup');
-  if (state === 'levelup') { showCards(p.choices, p.level); return; }
   if (state === 'playing') { overlay.classList.remove('show'); return; }
   if (state === 'title') return;
 
@@ -176,7 +152,8 @@ const best = getBest();
 showOverlay(
   '<span class="title">먼 곳의 횃대</span><span class="sub">DISTANT ROOST · COMMANDO</span>',
   `이동만 하면 된다 · 공격은 자동<br>${RUN_SEC / 60}분을 버티면 승리`
-  + `<br><span class="dim">PC: 방향키 · WASD / 모바일: 화면을 끌어서</span>`
+  + `<br><span class="dim">이동 WASD · 조준 마우스 · 좌클릭 2연사 · 우클릭 위상조정탄 · R 제압사격 · Shift 회피</span>`
+  + `<br><span class="dim">모바일: 왼쪽 절반 이동 · 오른쪽 절반 조준(누르면 발사)</span>`
   + (best ? `<br><span class="dim">최고 생존 ${mmss(best)}</span>` : '')
   + (totalGold() ? `<span class="dim"> · 모은 금화 ${totalGold()}</span>` : ''),
   '시작',
