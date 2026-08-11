@@ -13,6 +13,10 @@ export const PASSIVES = {
   ukulele: { tier: 'rare', name: '우쿨렐레', color: '#c19a6b', desc: '타격 시 25% 확률로 번개가 튄다', step: 1, icon: 'item.ukulele' },
   atg: { tier: 'legend', name: 'AtG 미사일 Mk.1', color: '#a8dcff', desc: '타격 시 10% 확률로 유도 미사일', step: 1, icon: 'item.atg' },
   glasses: { tier: 'rare', name: '렌즈 제작자의 안경', color: '#a8dcff', desc: '치명타 확률 +7%', step: 0.07, icon: 'item.glasses' },
+  steak: { tier: 'common', name: '들소 스테이크', color: '#e8394f', desc: '최대 체력 +25 (중첩당 +25)', step: 25, icon: 'item.steak' },
+  dagger: { tier: 'common', name: '삼각 단검', color: '#dbe4f2', desc: '타격 시 10% 확률로 출혈 · 240% 피해 (중첩당 +10%)', step: 0.10, icon: 'item.dagger' },
+  rounds: { tier: 'common', name: '관통 탄환', color: '#ffd23f', desc: '보스에게 피해 +20% (중첩당 +20%)', step: 0.20, icon: 'item.rounds' },
+  gas: { tier: 'rare', name: '휘발유', color: '#ff7a1a', desc: '처치 시 주변을 태운다 · 150% 피해 (중첩당 +150%)', step: 1.5, icon: 'item.gas' },
   tooth: { tier: 'common', name: '몬스터의 이빨', color: '#ffffff', desc: '처치 시 회복 구슬을 떨군다', step: 1, icon: 'item.tooth' },
 };
 
@@ -32,6 +36,10 @@ export function modsOf(passives) {
     atg: lv('atg'),
     crit: lv('glasses') * PASSIVES.glasses.step,
     tooth: lv('tooth'),
+    steak: lv('steak') * PASSIVES.steak.step,
+    bleed: lv('dagger') * PASSIVES.dagger.step,
+    boss: lv('rounds') * PASSIVES.rounds.step,
+    gas: lv('gas'),
     hp: 0,
     area: 1,
     regen: 0,

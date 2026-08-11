@@ -36,7 +36,7 @@ export const SKILLS = {
     fire(g, dir) {
       g.shoot(dir, {
         coef: this.coef, speed: this.speed, r: this.r, pierce: 99,
-        spr: 'phase', grow: 0.4, life: 130, trail: 90, trailColor: '#6fc8ff',
+        spr: 'phase', grow: 0.4, life: 130, trail: 200, trailColor: '#6fc8ff', ghost: 6,
       });
     },
   },

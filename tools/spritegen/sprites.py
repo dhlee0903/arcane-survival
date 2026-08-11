@@ -31,12 +31,12 @@ def sprite(name, pal, art=2):
 # RoR2 코만도 — 짙은 남색 코트, 목에 두른 천, 양손 권총. 2등신으로 줄였다.
 PAL['commando'] = {
     'k': K,
-    'd': '#1d2a4a', 'm': '#2f4470', 'l': '#4c6aa0',       # 코트
-    'D': '#121a30',                                       # 접지 그늘
-    'r': '#8a3320', 'R': '#d4552e', 'p': '#ff9a5c',       # 목천 · 견장
+    'd': '#8a3a08', 'm': '#d4691a', 'l': '#ff9a3c',       # 주황 우주복
+    'D': '#4a1d04',                                       # 접지 그늘
+    'r': '#a8791a', 'R': '#ffd23f', 'p': '#fff2b8',       # 노란 헬멧
     'x': '#b5764a', 's': '#e8a877', 'S': '#ffd2a8',       # 살갗
     'a': '#2a2f3d', 'w': '#5b6478', 'W': '#9aa4b8',       # 총 · 장비
-    'q': '#1f8ad4', 'Q': '#7fe2ff',                       # 고글
+    'q': '#1f8ad4', 'Q': '#9fe8ff',                       # 헬멧 바이저
     'c': '#a8791a', 'C': '#ffd23f',
 }
 CCOAT = ['d', 'm', 'l']
@@ -45,38 +45,35 @@ CGEAR = ['a', 'w', 'W']
 
 
 def _commando(pose):
-    c = Cv(30, 32)
-    cx = 14.0
+    """노란 헬멧에 주황 우주복. 총열이 길어 어느 쪽을 겨누는지 한눈에 보인다."""
+    c = Cv(32, 32)
+    cx = 13.0
     step = {'stand': 0, 'stepA': 1, 'stepB': -1}[pose]
 
-    # 다리 — 코트 아래로 조금만 보인다
+    # 다리
     for side, lead in ((-1, step > 0), (1, step < 0)):
         lx = cx + side * 2.8 + (side * 1.4 if lead else 0)
-        c.rect(lx - 1.8, 27, lx + 1.8, 29, 'a')
+        c.rect(lx - 1.8, 26, lx + 1.8, 29, 'd')
         c.rect(lx - 2.2, 30, lx + 2.2, 31, 'D')
-    # 코트 — 어깨가 넓고 아래로 퍼진다
-    c.celtaper(cx + step * 0.6, 17, 29, 6.0, 8.0, CCOAT, curve=0.85)
-    c.rect(cx - 1, 20, cx, 29, 'd')                 # 앞섶
-    # 권총 — 양손에 하나씩
-    for side in (-1, 1):
-        gx = cx + side * 9.0
-        c.celsphere(gx, 20.5, 2.6, 2.4, CSKIN)      # 손
-        c.rect(gx - 1.4, 17.5, gx + 1.4, 19.5, 'w')
-        c.rect(gx - 1.4, 17.5, gx + 1.4, 17.5, 'W')
-        c.rect(gx + side * 0.6, 15.5, gx + side * 1.4, 17.5, 'a')
-    # 목에 두른 천
-    c.celsphere(cx, 15.6, 6.6, 2.6, ['r', 'R', 'p'])
-    c.rect(cx + 4, 16, cx + 6, 20, 'r')             # 흩날리는 자락
-    c.rect(cx + 4, 16, cx + 5, 18, 'R')
-    # 머리 — 크게. 고글 한 줄이 표정 전부다
-    c.celsphere(cx, 9.0, 7.0, 7.2, CSKIN)
-    c.celsphere(cx, 5.4, 7.4, 4.6, CCOAT)           # 후드 · 모자
-    c.rect(cx - 7, 8.6, cx + 7, 8.6, 'D')
-    c.rect(cx - 6, 9.6, cx + 6, 11.6, 'a')          # 고글 띠
-    c.rect(cx - 5, 10.0, cx - 2, 11.2, 'q')
-    c.rect(cx + 2, 10.0, cx + 5, 11.2, 'q')
-    c.put(cx - 5, 10.0, 'Q')
-    c.put(cx + 2, 10.0, 'Q')
+    # 몸통 — 우주복
+    c.celtaper(cx + step * 0.6, 16, 28, 5.6, 7.0, CCOAT, curve=0.85)
+    c.rect(cx - 5, 20, cx + 5, 21, 'D')            # 허리 벨트
+    c.rect(cx - 2, 17, cx + 2, 19, 'a')            # 가슴 장비
+    c.rect(cx - 2, 17, cx + 2, 17, 'w')
+    # 총 — 총열이 길게 앞으로 뻗는다
+    c.rect(cx + 4, 18.5, cx + 15, 20.5, 'w')       # 총열
+    c.rect(cx + 4, 18.5, cx + 15, 18.5, 'W')
+    c.rect(cx + 13, 17.5, cx + 16, 21.5, 'a')      # 총구
+    c.rect(cx + 2, 18, cx + 6, 22, 'a')            # 총몸
+    c.celsphere(cx + 4.5, 21.5, 2.4, 2.2, CSKIN)   # 앞손
+    c.celsphere(cx - 5.5, 20.0, 2.4, 2.2, CSKIN)   # 뒷손
+    # 헬멧 — 노랗고 둥글다. 바이저 한 줄이 표정 전부다
+    c.celsphere(cx, 9.0, 7.4, 7.4, ['r', 'R', 'p'], lo=0.32, hi=0.72)
+    c.rect(cx - 7, 15.5, cx + 7, 16.5, 'D')        # 목 링
+    c.rect(cx - 5.5, 8.0, cx + 5.5, 11.5, 'a')     # 바이저 틀
+    c.rect(cx - 4.5, 8.5, cx + 4.5, 10.8, 'q')
+    c.rect(cx - 4.5, 8.5, cx - 1.0, 9.2, 'Q')      # 반사
+    c.rect(cx - 1, 2.5, cx + 1, 4.5, 'w')          # 헬멧 안테나
     c.ao('D', 'dm')
     c.outline('k')
     return c.rows(trim=False)
@@ -141,31 +138,30 @@ PAL['wisp'] = {
 
 
 def _wisp(ph):
-    """레서 위습 — 검붉은 덩이가 통째로 타고 있다. 눈만 있고 입은 없다."""
+    """레서 위습 — 몸 전체가 타오르는 불덩이. 심지가 붉고 겉이 노랗다."""
     import math as _m
-    c = Cv(24, 26)
-    cx, cy = 11.5, 14.0
-    # 위로 솟는 불꽃 — 몸에서 이어져 올라간다
-    for y in range(0, 14):
-        t = 1 - y / 13
-        half = 6.4 * _m.sin(t * 2.0) ** 0.8 if t > 0 else 0
-        wob = _m.sin(y * 0.7 + ph * 1.6) * 1.4
+    c = Cv(24, 28)
+    cx, cy = 11.5, 15.0
+    # 통째로 타는 불꽃 — 위로 갈수록 좁아지며 흔들린다
+    for y in range(0, 27):
+        t = 1 - y / 26
+        half = 8.2 * _m.sin((1 - t) * 2.1) ** 0.7 if y > 0 else 0
+        if t > 0.55:
+            half *= (1 - (t - 0.55) / 0.45) * 1.15
+        wob = _m.sin(y * 0.55 + ph * 1.7) * (1.6 * t)
         for x in range(int(round(cx + wob - half)), int(round(cx + wob + half)) + 1):
             nx = (x + 0.5 - cx - wob) / max(1.0, half)
-            ch = 'o' if abs(nx) < 0.65 else 'm'
-            if abs(nx) < 0.3 and y > 5:
-                ch = 'y'
+            d = abs(nx)
+            ch = 'm' if d > 0.72 else ('o' if d > 0.42 else 'y')
+            if d < 0.2 and y > 12:
+                ch = 'w'
+            if y > 20 and d > 0.55:
+                ch = 'd'
             c.put(x, y, ch)
-    # 본체 — 검붉은 덩이
-    c.celsphere(cx, cy, 7.4, 7.0, ['d', 'm', 'l'], lo=0.30, hi=0.70)
-    c.celsphere(cx, cy + 1.5, 5.4, 4.4, ['D', 'd', 'd'], lo=0.30, hi=0.70)
-    # 아래로 흘러내리는 불티
-    for i, (dx, dy) in enumerate(((-4, 8), (0, 9), (4, 8))):
-        c.put(cx + dx, cy + dy + (ph and i % 2), 'o')
-        c.put(cx + dx, cy + dy + 1 + (ph and i % 2), 'm')
-    c.eyes([(cx - 4.5, cy - 2), (cx + 1.5, cy - 2)], 'e', 'q', w=3, h=3)
-    c.put(cx - 4.5, cy - 2, 'Q')
-    c.put(cx + 1.5, cy - 2, 'Q')
+    # 심지 — 가운데가 검붉게 뭉쳐 있다
+    c.celsphere(cx, cy + 1.0, 5.0, 5.4, ['D', 'd', 'm'], lo=0.30, hi=0.70)
+    # 눈 — 불색 그대로
+    c.eyes([(cx - 4.0, cy - 2), (cx + 1.5, cy - 2)], 'o', 'w', w=3, h=3)
     c.outline('k')
     return c.rows()
 
@@ -1023,6 +1019,72 @@ def _item_tooth():
 
 
 sprite('item.tooth', 'item')(_item_tooth)
+
+
+def _item_steak():
+    """들소 스테이크 — 최대 체력."""
+    c = Cv(16, 14)
+    c.celsphere(7.5, 7.0, 7.0, 6.0, ['r', 'R', 'p'], lo=0.32, hi=0.72)
+    c.rect(2, 9, 12, 12, 'W')                     # 붙은 지방
+    c.rect(2, 9, 12, 9, 'w')
+    c.rect(10, 2, 13, 4, 'W')                     # 뼈
+    c.put(4, 4, 'p')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.steak', 'item')(_item_steak)
+
+
+def _item_dagger():
+    """삼각 단검 — 출혈."""
+    c = Cv(16, 18)
+    for i in range(11):                           # 삼각 날
+        half = 4.0 * (1 - i / 10)
+        for x in range(int(round(7.5 - half)), int(round(7.5 + half)) + 1):
+            nx = (x - 7.5) / max(1.0, half)
+            c.put(x, 2 + i, 'W' if nx < -0.2 else ('w' if nx < 0.5 else 'a'))
+    c.rect(4, 13, 11, 14, 'a')                    # 코등이
+    c.rect(6, 15, 9, 17, 'm')                     # 손잡이
+    c.put(7, 3, 'R')                              # 날 끝에 묻은 피
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.dagger', 'item')(_item_dagger)
+
+
+def _item_rounds():
+    """관통 탄환 — 보스에게 강하다."""
+    c = Cv(18, 14)
+    for i, x0 in enumerate((1, 7, 13)):
+        h = 11 - i
+        c.rect(x0, 13 - h, x0 + 3, 12, 'a')       # 탄피
+        c.rect(x0, 13 - h, x0, 12, 'w')
+        for j in range(3):                        # 탄두
+            c.rect(x0 + j * 0.5, 12 - h - 3 + j, x0 + 3 - j * 0.5, 12 - h - 3 + j, 'Y')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.rounds', 'item')(_item_rounds)
+
+
+def _item_gas():
+    """휘발유 — 처치 시 주변을 태운다."""
+    c = Cv(16, 18)
+    c.celtaper(7.5, 4, 16, 5.6, 5.6, ['d', 'o', 'O'])
+    c.rect(2, 4, 12, 4, 'O')
+    c.rect(5, 1, 9, 3, 'a')
+    c.rect(5, 1, 9, 1, 'w')
+    c.rect(10, 3, 12, 4, 'a')
+    c.rect(4, 8, 10, 12, 'k')
+    c.rect(5, 9, 9, 11, 'Y')
+    c.outline('k')
+    return c.rows()
+
+
+sprite('item.gas', 'item')(_item_gas)
 
 
 def _item_crowbar():

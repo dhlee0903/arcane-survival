@@ -253,6 +253,19 @@ export class Renderer {
         c.restore();
       }
       const art = f.art || 1;
+      if (p.ghost) {                            // 잔상 — 지나온 자리에 흐릿한 사본을 남긴다
+        for (let i = 1; i <= p.ghost; i += 1) {
+          c.save();
+          c.globalAlpha = 0.36 * (1 - i / (p.ghost + 1));
+          c.translate(Math.round(p.x + this.ox - Math.cos(a) * i * 7),
+            Math.round(p.y + this.oy - Math.sin(a) * i * 7));
+          c.rotate(a);
+          c.imageSmoothingEnabled = false;
+          c.drawImage(this.sheet, f.x, f.y, f.w, f.h,
+            -f.w / art / 2, -f.h / art / 2, f.w / art, f.h / art);
+          c.restore();
+        }
+      }
       c.save();
       c.translate(Math.round(p.x + this.ox), Math.round(p.y + this.oy));
       c.rotate(a);

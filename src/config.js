@@ -1,6 +1,6 @@
 // 먼 곳의 횃대 — 상수 (single source of truth).
 
-export const VERSION = 'v5.2';
+export const VERSION = 'v5.3';
 
 // 로직은 초당 60회 고정. 아래 값은 모두 "1스텝(1/60초)당" 기준이다.
 export const STEP_MS = 1000 / 60;
@@ -94,9 +94,8 @@ export const ENEMY = {
     atk: { kind: 'shot', n: 3, spread: 0.26, dmg: 3, speed: 1.5, cd: 250, wind: 96, range: 190, keep: 120, r: 4, spr: 'ember' },
   },
   jellyfish: {
-    hp: 16, speed: 0.62, dmg: 6, r: 7, gem: 0, knock: 0.8, clip: 'jellyfish', boom: true,
-    // 닿으면 터진다. 죽을 때도 터지므로 근처에서 잡으면 같이 맞는다
-    atk: { kind: 'nova', dmg: 10, rad: 34, cd: 0, wind: 0, range: 0 },
+    hp: 16, speed: 0.62, dmg: 6, r: 7, gem: 0, knock: 0.8, clip: 'jellyfish',
+    // 쏘지 않는다. 느릿느릿 다가와 몸으로 밀어붙일 뿐이다
   },
   beetle:    { hp: 28, speed: 1.16, dmg: 10, r: 7, gem: 1, knock: 0.5, clip: 'beetle' },
   guard:     {

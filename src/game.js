@@ -181,6 +181,9 @@ export class Game {
       }
     }
 
+    // 들소 스테이크는 최대 체력을 직접 올린다
+    const bonus = this.mods.steak || 0;
+    if (this.hpBonus !== bonus) { this.maxHp += bonus - (this.hpBonus || 0); this.hp += bonus - (this.hpBonus || 0); this.hpBonus = bonus; }
     if (this.hp > this.maxHp) this.hp = this.maxHp;
     if (this.xp >= this.xpNext) this.levelUp();
     if (this.hp <= 0) this.finish('over');
@@ -252,7 +255,7 @@ export class Game {
     this.addProjectile({
       x: this.px, y: this.py - 8, a, speed: o.speed,
       dmg: Math.round(this.damage() * o.coef), pierce: o.pierce || 0, r: o.r,
-      clip: o.spr ? null : 'bullet', spr: o.spr, trail: o.trail || 0, trailColor: o.trailColor, flip: Math.abs(a) > Math.PI / 2,
+      clip: o.spr ? null : 'bullet', spr: o.spr, trail: o.trail || 0, trailColor: o.trailColor, ghost: o.ghost || 0, flip: Math.abs(a) > Math.PI / 2,
       life: o.life || 110, grow: o.grow || 0, stagger: o.stagger || 0,
     });
     this.muzzle = 4;
@@ -655,6 +658,15 @@ export class Game {
       if (e.dead) continue;
       e.t += 1;
       if (e.flash > 0) e.flash -= 1;
+      if (e.bleed > 0) {                    // 출혈 — 12스텝마다 한 조각씩
+        e.bleedT = (e.bleedT || 0) + 1;
+        if (e.bleedT % 12 === 0) {
+          const tick = Math.max(1, Math.round(e.bleed / 5));
+          e.bleed -= tick;
+          this.spark(e.x, e.y - e.r * 0.5, 2, '#e8394f');
+          this.damageEnemy(e, tick, { proc: false });
+        }
+      }
       if (e.flashCd > 0) e.flashCd -= 1;
 
       if (e.prop) { alive.push(e); continue; }   // 항아리는 제자리에 가만히 있는다
@@ -735,8 +747,7 @@ export class Game {
         const hy = this.py - 6 - e.y;
         if (hx * hx + hy * hy <= rr * rr) {
           this.hurt(e.dmg);
-          // 해파리는 원작처럼 몸을 터뜨리고 사라진다
-          if (ENEMY[e.kind].boom) { this.spark(e.x, e.y, 18, '#c04ce0'); this.damageEnemy(e, 1e9); }
+
         }
       }
 
@@ -751,6 +762,7 @@ export class Game {
     if (e.dead) return;
     // 크로우바 — 아직 성한 적에게만 붙는다
     if (this.mods.crowbar > 0 && e.hp >= e.maxHp * 0.9) dmg *= 1 + this.mods.crowbar;
+    if (this.mods.boss > 0 && (e.boss || e.elite)) dmg *= 1 + this.mods.boss;   // 관통 탄환
     const crit = this.mods.crit > 0 && this.rnd() < this.mods.crit;
     if (crit) {
       dmg *= 2;
@@ -759,6 +771,11 @@ export class Game {
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
     if (opt.proc !== false && !e.prop) this.procItems(e, dmg);
+    // 삼각 단검 — 출혈. 시간에 걸쳐 기본 피해의 240%가 들어간다
+    if (opt.proc !== false && this.mods.bleed > 0 && this.rnd() < this.mods.bleed) {
+      e.bleed = (e.bleed || 0) + Math.round(this.damage() * 2.4);
+      e.bleedT = 0;
+    }
     // 계속 때리는 스킬 안에 있으면 매 프레임 흰색으로 타 실루엣만 남는다.
     // 번쩍인 뒤에는 잠깐 쉬게 해서 원래 그림이 보이게 한다.
     if (e.flashCd <= 0) { e.flash = FX.hitFlash; e.flashCd = FX.hitFlash + 10; }
@@ -779,6 +796,13 @@ export class Game {
     this.pops.push({ x: e.x, y: e.y - e.r, t: 0, life: 46, text: `+${g}`, color: '#ffd23f' });
     this.xp += ENEMY[e.kind].gem * 4 + 3;
     // 몬스터의 이빨 — 처치할 때마다 작은 회복 구슬이 떨어진다
+    // 휘발유 — 죽은 자리가 불탄다
+    if (this.mods.gas > 0) {
+      this.patches.push({
+        x: e.x, y: e.y, r: 26 + this.mods.gas * 8, life: 60,
+        dmg: Math.round(this.damage() * 1.5 * this.mods.gas), t: 0, tick: 0,
+      });
+    }
     if (this.mods.tooth > 0) {
       this.drops.push({ kind: 'tooth', x: e.x, y: e.y, life: DROP.life, heal: 6 + this.mods.tooth * 2 });
     }
