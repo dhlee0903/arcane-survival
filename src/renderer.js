@@ -12,8 +12,10 @@ const TILE = 16;
 const SLOT = 15;      // HUD 아이템 칸 크기
 // 흔한 것부터 — 앞쪽일수록 자주 나온다
 const GRASS = ['tile.grass0', 'tile.moss0', 'tile.grass1', 'tile.moss1'];
-// 흔한 것부터 — 앞쪽일수록 자주 나온다
-const DECOR = ['tuft', 'tuft', 'tuft', 'tuft', 'flower', 'rock', 'tuft', 'rock', 'mushroom', 'bones', 'stump', 'grave'];
+// 바닥에 흩뿌리는 장식. **풀과 돌만** 둔다 — 버섯 · 묘비 · 그루터기 · 뼈다귀를 섞었더니
+// 무대가 공동묘지처럼 잡다해지고, 큰 돌(장애물)이 그 사이에 묻혀 안 보였다.
+// 큰 돌은 여기 없다. 장식이 아니라 충돌 판정이 있는 물건이라 game.rocks에서 그린다.
+const DECOR = ['tuft', 'tuft', 'tuft', 'tuft', 'rock', 'tuft', 'tuft', 'rock'];
 
 export class Renderer {
   constructor(canvas) {
@@ -184,11 +186,18 @@ export class Renderer {
   actors(c, g) {
     const list = [];
     for (const e of g.enemies) if (!e.dead && this.onScreen(e.x, e.y, 40)) list.push(e);
+    // 큰 돌도 같이 줄 세운다 — 뒤로 돌아가면 가려지고 앞에 서면 돌이 뒤에 남는다
+    for (const s of g.rocks) if (this.onScreen(s.x, s.y, 60)) list.push({ rock: true, x: s.x, y: s.y, r: s.r });
     list.push({ player: true, x: g.px, y: g.py });
     list.sort((a, b) => a.y - b.y);
 
     for (const a of list) {
       if (a.player) { this.player(c, g); continue; }
+      if (a.rock) {
+        this.shadow(c, a.x + this.ox, a.y + this.oy + 3, a.r * 1.5);
+        this.blit(c, 'boulder', a.x + this.ox, a.y + this.oy + a.r * 0.9);
+        continue;
+      }
       const name = frameAt(ENEMY[a.kind].clip, a.t);
       this.shadow(c, a.x + this.ox, a.y + this.oy + a.r, a.r * 1.15);
       this.blit(c, name, a.x + this.ox, a.y + this.oy + a.r, { flip: a.face < 0, tint: a.flash > 0 });

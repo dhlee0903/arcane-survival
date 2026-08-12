@@ -1,6 +1,6 @@
 // 먼 곳의 횃대 — 상수 (single source of truth).
 
-export const VERSION = 'v5.8';
+export const VERSION = 'v5.9';
 
 // 로직은 초당 60회 고정. 아래 값은 모두 "1스텝(1/60초)당" 기준이다.
 export const STEP_MS = 1000 / 60;
@@ -50,11 +50,12 @@ export const PLAYER = {
 
 // ---- 성장 ----
 // 레벨 n → n+1 에 필요한 경험치.
-// 초반은 성큼성큼 오르고(무기를 빨리 갖추게) 뒤로 갈수록 완만히 무거워진다.
-// 전 구간을 한 번에 낮추려면 아래 세 계수를 같이 줄인다(지금은 이전 대비 약 13% 감소).
+// 레벨업으로 고르는 카드가 없어진 뒤로 레벨은 순수 능력치(공격력·최대 체력)라서
+// 빨리 오르면 그냥 판이 쉬워진다. 예전 곡선(5 + 4.4n + 0.30n²)은 1분 안에 5~6레벨이
+// 나와서 두 배 남짓 무겁게 잡았다. 전 구간을 한 번에 조절하려면 세 계수를 같이 건드린다.
 export function xpNeed(level) {
   const n = level - 1;
-  return Math.max(4, Math.round(5 + n * 4.4 + n * n * 0.30));
+  return Math.max(10, Math.round(12 + n * 9.5 + n * n * 0.85));
 }
 
 export const MAX_PASSIVES = 5;
@@ -84,27 +85,31 @@ export const GEM_CAP = 150;     // 넘치면 먼 것부터 합친다(값은 보�
 export const ENEMY = {
   // 원작 수치를 그대로 옮기면(레무리안 80 · 타이탄 2100) 이쪽 밀도에서는 벽이 된다.
   // 서열과 성격만 가져왔다. 해파리는 느릿느릿 다가와서 터진다.
+  //
+  // 체력은 **2연사 한 세트(공격력 × 2)** 를 기준으로 잡는다. 기본 공격력이 12이므로
+  // 한 세트가 24. 잡몹이 24를 못 넘기면 스쳐도 죽어서 조준할 이유가 사라진다 —
+  // 그래서 잡몹도 최소 한 세트는 버티게 올리고, 올린 만큼 소환을 줄였다(spawner.js).
   lemurian:  {
-    hp: 10, speed: 1.02, dmg: 8, r: 7, gem: 0, knock: 0.7, clip: 'lemurian',
+    hp: 25, speed: 1.02, dmg: 8, r: 7, gem: 0, knock: 0.7, clip: 'lemurian',
     atk: { kind: 'shot', n: 1, dmg: 5, speed: 1.9, cd: 220, wind: 36, range: 150, r: 4, spr: 'spit' },
   },
   wisp:      {
-    hp: 8, speed: 0.86, dmg: 5, r: 6, gem: 0, knock: 1.0, clip: 'wisp',
+    hp: 20, speed: 0.86, dmg: 5, r: 6, gem: 0, knock: 1.0, clip: 'wisp',
     // 원작처럼 1.6초쯤 조준한 뒤 불덩이 세 발을 흩뿌린다
     atk: { kind: 'shot', n: 3, spread: 0.26, dmg: 3, speed: 1.5, cd: 250, wind: 96, range: 190, keep: 120, r: 4, spr: 'ember' },
   },
   jellyfish: {
-    hp: 16, speed: 0.62, dmg: 6, r: 7, gem: 0, knock: 0.8, clip: 'jellyfish',
+    hp: 40, speed: 0.62, dmg: 6, r: 7, gem: 0, knock: 0.8, clip: 'jellyfish',
     // 쏘지 않는다. 느릿느릿 다가와 몸으로 밀어붙일 뿐이다
   },
-  beetle:    { hp: 28, speed: 1.16, dmg: 10, r: 7, gem: 1, knock: 0.5, clip: 'beetle' },
+  beetle:    { hp: 64, speed: 1.16, dmg: 10, r: 7, gem: 1, knock: 0.5, clip: 'beetle' },
   guard:     {
-    hp: 170, speed: 0.62, dmg: 16, r: 12, gem: 2, knock: 0.15, clip: 'guard', elite: true,
+    hp: 340, speed: 0.62, dmg: 16, r: 12, gem: 2, knock: 0.15, clip: 'guard', elite: true,
     // 발밑으로 떨어지는 곡사 세 발 — 서 있으면 맞는다
     atk: { kind: 'mortar', n: 3, dmg: 11, cd: 200, wind: 44, range: 230, keep: 90, rad: 26, fall: 46 },
   },
   titan:     {
-    hp: 820, speed: 0.58, dmg: 20, r: 15, gem: 2, knock: 0, clip: 'titan', boss: true,
+    hp: 1600, speed: 0.58, dmg: 20, r: 15, gem: 2, knock: 0, clip: 'titan', boss: true,
     // 눈이 달아오른 뒤 굵은 광선을 쏜다. 예고가 길어서 옆으로 빠지면 피할 수 있다
     atk: { kind: 'laser', dmg: 22, cd: 260, wind: 70, range: 300, keep: 130, w: 14 },
   },
@@ -126,6 +131,15 @@ export const BARREL = {
   ],
 };
 
+// 큰 돌 — 장식이 아니라 벽이다. 사람도 적도 못 지나가고 총알도 여기서 죽는다.
+// 상자·항아리와 같은 방식으로 좌표 해시에 박아 둬서, 어디로 가든 같은 자리에 있고
+// 눈앞에서 튀어나오지 않는다. **가끔** 보여야 하므로 칸을 넓게(cell) 잡고 확률을 낮게 뒀다.
+export const BOULDER = {
+  cell: 160,            // 이 크기의 칸마다 최대 하나
+  chance: 0.16,         // 그 칸에 놓일 확률 — 한 화면에 0.5개꼴, 두어 화면에 하나 본다
+  r: 11,                // 충돌 반지름(그림 폭의 절반. 그림은 22×15 남짓)
+};
+
 export const COIN_VALUE = [3, 12];   // 금화 하나가 주는 골드 범위
 export const KEY_GOLD = 'og-gold-day10';
 
@@ -137,7 +151,10 @@ export const SCALE = {
   dmg: (min) => 1 + min * 0.09,
 };
 
-export const MAX_ENEMIES = 90;       // 이 수를 넘으면 새로 소환하지 않는다(사건 소환은 예외)
+// 이 수를 넘으면 새로 소환하지 않는다(사건 소환은 예외).
+// 적 하나가 두 배 넘게 오래 버티게 됐으므로 상한도 그만큼 내렸다 — 안 그러면
+// 죽지 않는 무리가 계속 쌓여 화면이 몸으로 막힌다.
+export const MAX_ENEMIES = 42;
 
 // ---- 낙하물 ----
 export const DROP = {

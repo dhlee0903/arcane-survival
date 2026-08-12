@@ -9,7 +9,7 @@
 import {
   view, PLAYER, RUN_SEC, ENEMY, SCALE, GEM, gemTier, GEM_DRIFT, GEM_CAP,
   DROP, HEART_HEAL, BARREL, COIN_VALUE, ESHOT_LIFE, xpNeed, ITEM_TIER, CHEST_TIERS,
-  hash2, FX,
+  BOULDER, hash2, FX,
 } from './config.js';
 import { SKILLS, SKILL_IDS } from './weapons.js';
 import { modsOf, rollItem, PASSIVES } from './upgrades.js';
@@ -80,6 +80,7 @@ export class Game {
     this.arcs = [];        // 우쿨렐레 전기 아크
     this.trails = [];      // 위상조정탄이 지나간 자리 — 서서히 사라진다
     this.sites = new Set();   // 이미 훑은 칸
+    this.rocks = [];       // 큰 돌 — 벽이다. 사람도 적도 총알도 못 지나간다
     this.pops = [];        // 화면에 떠오르는 숫자(골드)
     this.loot = [];        // 상자에서 떨어져 나와 바닥에 놓인 아이템
     this.pickFx = [];      // 주운 아이템이 머리 위로 떴다 사라진다
@@ -152,6 +153,7 @@ export class Game {
     if (this.phase !== 'playing' || this.paused) return;
     this.t += 1;
 
+    this.tickRocks();
     this.movePlayer();
     this.tickSkills();
     this.tickSites();
@@ -212,6 +214,7 @@ export class Game {
         }
       }
       if (this.diveT % 3 === 0) this.spark(this.px, this.py, 3, '#cfd8e8');
+      this.clampToRocks();          // 구르기로도 돌을 통과할 수는 없다
       this.anim.set('commando.walk');
       this.anim.step(2);
       return;
@@ -221,6 +224,7 @@ export class Game {
     const dy = (this.iny || 0) * sp;
     this.px += dx;
     this.py += dy;
+    this.clampToRocks();
     this.moving = dx !== 0 || dy !== 0;
 
     if (dx !== 0) { this.faceX = dx > 0 ? 1 : -1; this.faceHold = PLAYER.faceKeep; } else if (this.faceHold > 0) this.faceHold -= 1;
@@ -291,6 +295,66 @@ export class Game {
     this.want.special2 = false;
   }
 
+  // ---- 큰 돌 ----
+  // 장식이 아니라 **벽**이다. 상자·항아리와 같이 좌표 해시로 자리를 정하므로 어디로
+  // 가든 같은 자리에 있고, 저장할 것도 없다. 화면 근처 것만 목록에 들고 있는다.
+  tickRocks() {
+    const { cell } = BOULDER;
+    // 상자를 놓는 범위(tickSites)보다 넓게 훑는다 — 그래야 상자가 아직 목록에 없는
+    // 돌 위에 놓이는 일이 없다
+    const reach = Math.max(view.w, view.h) * 1.3;
+    const c0 = Math.floor((this.px - reach) / cell);
+    const c1 = Math.floor((this.px + reach) / cell);
+    const r0 = Math.floor((this.py - reach) / cell);
+    const r1 = Math.floor((this.py + reach) / cell);
+    this.rocks.length = 0;
+    for (let cy = r0; cy <= r1; cy += 1) {
+      for (let cx = c0; cx <= c1; cx += 1) {
+        if (hash2(cx * 17 - 9, cy * 23 + 4) >= BOULDER.chance) continue;
+        this.rocks.push({
+          x: (cx + 0.18 + hash2(cx + 31, cy) * 0.64) * cell,
+          y: (cy + 0.18 + hash2(cx, cy - 17) * 0.64) * cell,
+          r: BOULDER.r,
+        });
+      }
+    }
+  }
+
+  // 캐릭터는 발밑이 아니라 몸통 기준으로 부딪힌다 — 그림 아래쪽이 돌에 살짝 겹쳐야
+  // 돌 뒤로 돌아가는 게 자연스럽다
+  clampToRocks() {
+    const p = { x: this.px, y: this.py };
+    this.pushOutOfRocks(p, PLAYER.r);
+    this.px = p.x;
+    this.py = p.y;
+  }
+
+  rockNear(x, y, pad = 0) {
+    for (const s of this.rocks) {
+      const dx = x - s.x;
+      const dy = y - s.y;
+      const rr = s.r + pad;
+      if (dx * dx + dy * dy < rr * rr) return s;
+    }
+    return null;
+  }
+
+  // 원 밖으로 밀어낸다 — 벽에 부딪혀도 멈추지 않고 미끄러지듯 옆으로 흐르게.
+  // 좌표를 통째로 되돌리면 벽에 붙었을 때 아예 못 움직여서 답답하다.
+  pushOutOfRocks(p, r) {
+    for (const s of this.rocks) {
+      let dx = p.x - s.x;
+      let dy = p.y - s.y;
+      const rr = s.r + r;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= rr * rr) continue;
+      let d = Math.sqrt(d2);
+      if (d < 0.001) { dx = 0; dy = -1; d = 1; }      // 정확히 겹쳤으면 위로 뺀다
+      p.x = s.x + (dx / d) * rr;
+      p.y = s.y + (dy / d) * rr;
+    }
+  }
+
   // ---- 상자 ----
   // 원작처럼 맵에 놓여 있고, 골드가 모자라면 못 연다. 찾아다녀야 한다.
   // 상자와 항아리는 **세상에 미리 놓여 있다.** 좌표 해시로 자리를 정하므로
@@ -324,6 +388,7 @@ export class Game {
         const x = (cx + 0.2 + hash2(cx, cy) * 0.6) * CELL;
         const y = (cy + 0.2 + hash2(cx + 7, cy - 3) * 0.6) * CELL;
         if (Math.hypot(x - this.px, y - this.py) < 90) continue;   // 발밑에는 놓지 않는다
+        if (this.rockNear(x, y, 22)) continue;                     // 큰 돌에 파묻히지 않게
         if (site.kind === 'chest') {
           this.chests.push({
             x, y, tier: site.tier.id, open: false, t: 0,
@@ -452,6 +517,11 @@ export class Game {
             p.hits.add(e.id);
           } else { alive = false; break; }
         }
+      }
+      // 큰 돌에 막힌다 — 관통탄도 예외가 아니다. 돌은 엄폐물이라야 의미가 있다
+      if (alive && this.rockNear(p.x, p.y, p.r)) {
+        this.spark(p.x, p.y, 4, '#b9c6cc');
+        alive = false;
       }
       // 화면에서 한참 벗어나면 버린다
       if (alive && (Math.abs(p.x - this.px) > view.w || Math.abs(p.y - this.py) > view.h)) alive = false;
@@ -633,6 +703,11 @@ export class Game {
           this.spark(s.x, s.y, 6, '#ff9a3c');
           continue;
         }
+        // 적 탄도 큰 돌에 막힌다 — 돌 뒤가 실제로 안전해야 엄폐가 성립한다
+        if (this.rockNear(s.x, s.y, s.r)) {
+          this.spark(s.x, s.y, 4, '#ff9a3c');
+          continue;
+        }
       } else if (s.kind === 'mortar' && s.life <= 0) {
         const dx = this.px - s.x;
         const dy = this.py - 6 - s.y;
@@ -743,6 +818,7 @@ export class Game {
       const move = hold ? 0 : e.speed * back;
       e.x += (dx / d) * move + e.kx;
       e.y += (dy / d) * move + e.ky;
+      if (this.rocks.length) this.pushOutOfRocks(e, e.r);   // 적도 큰 돌은 못 지나간다
       e.kx *= 0.82;
       e.ky *= 0.82;
       if (Math.abs(e.kx) < 0.02) e.kx = 0;

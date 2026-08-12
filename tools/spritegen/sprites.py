@@ -516,6 +516,52 @@ def _rock():
 sprite('rock', 'rock')(_rock)
 
 
+# 큰 돌 — 장식이 아니라 **장애물**이다(못 지나가고 총알도 막힌다).
+# 그래서 납작한 돔이 아니라 위로 선 덩어리로 그린다. 넘어갈 수 없다고 실루엣이 말해야 한다.
+def _boulder():
+    W, H = 48, 46
+    c = Cv(W, H)
+    cx = 23.5
+    top, base = 2, 41
+
+    # 몸통 — 아래로 갈수록 넓어진다
+    c.celtaper(cx, top, base, 6.0, 22.0, ['d', 'm', 'l'], lo=0.10, hi=0.62, curve=0.62)
+    # 어깨를 둥글게 얹어 각진 기둥처럼 보이지 않게
+    c.celsphere(cx - 1.5, 12, 15.5, 11.0, ['d', 'm', 'l'], lo=0.10, hi=0.62)
+    c.celsphere(cx + 2, 27, 21.0, 15.0, ['d', 'm', 'l'], lo=0.10, hi=0.62,
+                clip=lambda x, y: y <= base)
+
+    # 오른쪽 위 모서리를 깎아 결정처럼 — 완전한 공으로 보이지 않게
+    c.tri((28, 3), (46, 24), (29, 20), 'd',
+          shade=lambda x, y: 'd' if c.get(x, y) in ('l', 'm') else None)
+    c.tri((26, 6), (36, 20), (28, 18), 'm',
+          shade=lambda x, y: 'm' if c.get(x, y) == 'd' else None)
+    # 왼쪽 위는 빛을 받는 넓은 면
+    c.celsphere(14, 14, 10.0, 9.0, ['m', 'l', 'l'], lo=0.20, hi=0.50,
+                clip=lambda x, y: c.get(x, y) in ('m', 'l'))
+
+    # 금은 짧게. 길게 그으면 스프라이트가 두 쪽으로 갈라져 보인다
+    for (x0, y0, x1, y1) in ((17, 20, 22, 28), (22, 28, 17, 34), (32, 30, 39, 34)):
+        c.line(x0, y0, x1, y1, 'd')
+
+    # 이끼는 빛 받는 위쪽에만
+    for (mx, my, mr) in ((20, 3, 3.6), (13, 8, 2.8), (7, 21, 2.6)):
+        c.celsphere(mx, my, mr, mr * 0.72, ['g', 'G', 'G'], lo=0.3, hi=0.62,
+                    clip=lambda x, y: c.get(x, y) in ('l', 'm'))
+
+    # 바닥에 박힌 밑동 — 접지 그늘을 두껍게 깔아 "넘어갈 수 없다"고 읽히게
+    for y in range(base + 1, base + 3):
+        for x in range(W):
+            if c.get(x, y - 1) not in ('.', 'k'):
+                c.put(x, y, 'D')
+    c.ao('D', ('d', 'm', 'l'), depth=1)
+    c.outline('k')
+    return c.rows()
+
+
+sprite('boulder', 'rock')(_boulder)
+
+
 PAL['tuft'] = {'k': K, 'd': '#1f5423', 'm': '#357a30', 'l': '#5aa84a'}
 
 
@@ -532,24 +578,6 @@ def _tuft():
 
 
 sprite('tuft', 'tuft')(_tuft)
-
-
-PAL['fungus'] = {'k': K, 'D': '#5c1220', 'd': '#a8203a', 'm': '#e8394f', 'l': '#ff9eb0',
-                 's': '#a89a80', 'S': '#e8ddc4'}
-
-
-def _mushroom():
-    c = Cv(13, 13)
-    c.celtaper(6.0, 6, 12, 1.8, 2.6, ['s', 'S', 'S'])
-    c.celsphere(6.0, 6.0, 6.2, 4.8, ['d', 'm', 'l'], lo=0.32, hi=0.74, clip=lambda x, y: y <= 7)
-    c.rect(0, 7, 12, 7, 'D')
-    for dx, dy in ((-3, 2), (2, 1), (0, 4), (3, 3)):
-        c.put(6 + dx, 3 + dy, 'l')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('mushroom', 'fungus')(_mushroom)
 
 
 PAL['flower'] = {'k': K, 'd': '#a8791a', 'm': '#ffd23f', 'l': '#fff2b8',
@@ -569,63 +597,6 @@ def _flower():
 
 
 sprite('flower', 'flower')(_flower)
-
-
-PAL['bones'] = {'k': K, 'd': '#5c5748', 'm': '#8f8a76', 'l': '#c2bda8'}
-
-
-def _bones():
-    c = Cv(16, 11)
-    for x0, y0, x1, y1 in ((2, 2, 13, 8), (2, 8, 13, 2)):
-        c.line(x0, y0, x1, y1, 'm')
-        c.line(x0, y0 + 1, x1, y1 + 1, 'd')
-    for px_, py_ in ((2, 2), (13, 8), (2, 8), (13, 2)):
-        c.celsphere(px_, py_ + 0.5, 2.0, 1.8, ['d', 'm', 'l'], lo=0.30, hi=0.70)
-    c.outline('k')
-    return c.rows()
-
-
-sprite('bones', 'bones')(_bones)
-
-
-PAL['stump'] = {'k': K, 'D': '#2a1a08', 'd': '#4d3010', 'm': '#8a5423', 'l': '#c19a6b',
-                'g': '#2f7a33', 'G': '#4fb04a'}
-
-
-def _stump():
-    c = Cv(16, 14)
-    c.celtaper(7.5, 4, 13, 6.4, 5.8, ['d', 'm', 'l'])
-    c.celsphere(7.5, 4.2, 6.6, 3.0, ['l', 'l', 'l'])
-    c.celsphere(7.5, 4.2, 4.4, 1.9, ['m', 'm', 'm'])
-    c.celsphere(7.5, 4.2, 2.0, 0.9, ['l', 'l', 'l'])
-    c.rect(1, 7, 14, 7, 'D')
-    c.celsphere(3.0, 9.5, 2.4, 1.8, ['g', 'G', 'G'], clip=lambda x, y: c.get(x, y) in 'dml')
-    c.ao('D', 'dm')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('stump', 'stump')(_stump)
-
-
-PAL['grave'] = {'k': K, 'D': '#1a2028', 'd': '#3b4551', 'm': '#697585', 'l': '#a3b0bf',
-                'g': '#2f7a33', 'G': '#4fb04a'}
-
-
-def _grave():
-    c = Cv(15, 17)
-    c.celsphere(7.0, 15.0, 7.0, 2.4, ['D', 'D', 'd'])
-    c.celtaper(7.0, 5, 15, 4.6, 5.2, ['d', 'm', 'l'])
-    c.celsphere(7.0, 5.0, 4.6, 4.4, ['d', 'm', 'l'], lo=0.32, hi=0.72)
-    c.rect(6, 4, 7, 11, 'D')                      # 새긴 십자
-    c.rect(4, 6, 10, 7, 'D')
-    c.celsphere(3.0, 12.0, 2.4, 1.6, ['g', 'G', 'G'], clip=lambda x, y: c.get(x, y) in 'dml')
-    c.ao('D', 'dm')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('grave', 'grave')(_grave)
 
 
 # ============================ 투사체 ============================
