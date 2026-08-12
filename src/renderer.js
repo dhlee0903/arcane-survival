@@ -95,6 +95,7 @@ export class Renderer {
     this.chests(c, g);
     this.enemyShots(c, g);
     this.beams(c, g);
+    this.trails(c, g);
     this.arcs(c, g);
     this.zaps(c, g);
     this.parts(c, g);
@@ -382,6 +383,31 @@ export class Renderer {
     }
   }
 
+
+  // 위상조정탄 잔상 — 지나간 토막이 굵기와 밝기를 잃으며 사라진다
+  trails(c, g) {
+    if (!g.trails || !g.trails.length) return;
+    c.save();
+    c.lineCap = 'round';
+    for (const t of g.trails) {
+      // 선형으로 지우면 끝에서 뚝 끊긴다. 뒤쪽을 완만하게 눌러 서서히 옅어지게 한다
+      const u = (1 - t.t / t.life) ** 0.6;
+      c.globalAlpha = u * 0.8;
+      c.strokeStyle = t.color;
+      c.lineWidth = 1 + u * 3;
+      c.beginPath();
+      c.moveTo(t.x1 + this.ox, t.y1 + this.oy);
+      c.lineTo(t.x2 + this.ox, t.y2 + this.oy);
+      c.stroke();
+      if (u > 0.55) {                      // 갓 지나간 자리엔 하얀 심지가 남는다
+        c.globalAlpha = (u - 0.55) * 2;
+        c.strokeStyle = '#ffffff';
+        c.lineWidth = 1;
+        c.stroke();
+      }
+    }
+    c.restore();
+  }
 
   // 우쿨렐레 연쇄 번개 — 파란 전기에 하얀 심지. 곧게 잇지 않고 지그재그로 꺾는다
   arcs(c, g) {

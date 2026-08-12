@@ -78,6 +78,7 @@ export class Game {
     this.cds = { primary: 0, special: 0, special2: 0, dodge: 0 };
     this.chests = [];      // 맵에 흩어진 상자 — 찾아서 골드로 연다
     this.arcs = [];        // 우쿨렐레 전기 아크
+    this.trails = [];      // 위상조정탄이 지나간 자리 — 서서히 사라진다
     this.sites = new Set();   // 이미 훑은 칸
     this.pops = [];        // 화면에 떠오르는 숫자(골드)
     this.loot = [];        // 상자에서 떨어져 나와 바닥에 놓인 아이템
@@ -400,6 +401,19 @@ export class Game {
   }
 
   tickProjectiles() {
+    // 잔상 — 총알이 지나간 토막을 남겨 두고 시간에 따라 지운다.
+    // 총알 자체가 사라진 뒤에도 줄기가 남아 천천히 옅어진다.
+    for (const t of this.trails) t.t += 1;
+    this.trails = this.trails.filter((t) => t.t < t.life);
+    for (const p of this.projectiles) {
+      if (!p.trail) continue;
+      this.trails.push({
+        x1: p.x, y1: p.y, x2: p.x + p.vx, y2: p.y + p.vy,
+        t: 0, life: 44, color: p.trailColor || '#6fc8ff',
+      });
+    }
+    if (this.trails.length > 400) this.trails.splice(0, this.trails.length - 400);
+
     // AtG 미사일은 목표를 향해 휜다
     for (const p of this.projectiles) {
       if (!p.homing) continue;
