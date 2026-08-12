@@ -91,7 +91,7 @@ ORDER = [
     ('// ---- 주워 먹는 것 ----', ['gem.blue', 'gem.green', 'gem.red', 'heart', 'magnet', 'coin']),
     ('// ---- 부술 수 있는 물건 ----', ['chest.common', 'chest.common.open', 'chest.rare', 'chest.rare.open',
                               'chest.legend', 'chest.legend.open', 'barrel']),
-    ('// ---- 배경 장식 ----', ['rock', 'tuft', 'mushroom', 'flower', 'bones', 'stump', 'grave']),
+    ('// ---- 배경 장식 ----', ['boulder', 'rock', 'tuft', 'flower']),
     ('// ---- 바닥 타일 ----', ['tile.grass0', 'tile.grass1', 'tile.moss0', 'tile.moss1', 'tile.path']),
     ('// ---- 투사체 ----', ['bullet.0', 'bullet.1', 'bullet.orange', 'phase', 'missile', 'grenade',
                           'flame.0', 'flame.1', 'flame.2', 'zap.0', 'zap.1']),
@@ -115,6 +115,8 @@ NOTE = {
     'gem.blue': '  // 경험치 결정 — 같은 형태에 팔레트만 갈아 끼운다',
     'chest': '  // 상자 — 엘리트와 보스가 떨군다',
     'barrel': '  // 배럴 — 부수면 금화 · 회복 · 자석이 나온다',
+    'boulder': '  // 큰 돌 — 장식이 아니라 **장애물**이다. 사람도 적도 못 지나가고 총알도 막힌다.\n'
+               '  // 자리와 충돌은 game.js(rocks)가 들고 있고, 여기서는 그림만 맡는다.',
     'tile.grass0': '  // 잡티를 칸마다 흩뿌리면 노이즈로 보인다. 덩어리로 뭉치고 결을 넣어야 땅이 된다.\n'
                    '  // 가장자리는 기본색만 남겨 이웃 타일과의 이음새를 감춘다.',
     'bullet.0': '  // 예광탄 — 총알은 길쭉해야 총알로 읽힌다. 나가는 방향으로 뒤집어 쓴다',
