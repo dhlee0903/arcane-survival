@@ -3,7 +3,6 @@
 // 카메라는 항상 코만도를 화면 한가운데 둔다.
 
 import { view, setView, PLAYER, VERSION, ENEMY, RUN_SEC, ITEM_TIER, hash2 } from './config.js';
-import { SKILLS, SKILL_IDS } from './weapons.js';
 import { buildSheet, FONT } from './sprites.js';
 import { frameAt } from './anim.js';
 import { PASSIVES } from './upgrades.js';
@@ -390,6 +389,25 @@ export class Renderer {
       this.blit(c, PASSIVES[f.id].icon, g.px + this.ox, g.py + this.oy - 22 - u * 16, { mid: true });
       c.restore();
     }
+    // 쿨타임이 돌아온 스킬 — 머리 위에서 톡 튀어올랐다 사라진다.
+    // 아래 트레이의 숫자는 손이 있는 곳이 아니라서 눈이 못 따라간다.
+    // 여러 개가 같이 돌아오면 옆으로 늘어놓는다.
+    if (g.ready.length) {
+      const n = g.ready.length;
+      for (let i = 0; i < n; i += 1) {
+        const f = g.ready[i];
+        const u = f.t / f.life;
+        // 처음 몇 프레임은 위로 튕겼다가 제자리로 내려앉고, 끝에서 옅어진다
+        const pop = u < 0.18 ? (1 - u / 0.18) * 5 : 0;
+        c.save();
+        c.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1;
+        const x = g.px + this.ox + (i - (n - 1) / 2) * 16;
+        const y = g.py + this.oy - 30 - pop;
+        ellipse(c, x, y, 7, 7, 'rgba(6, 5, 14, .72)');
+        this.blit(c, f.icon, x, y, { mid: true });
+        c.restore();
+      }
+    }
   }
 
 
@@ -425,20 +443,26 @@ export class Renderer {
       const y1 = a.y1 + this.oy;
       const x2 = a.x2 + this.ox;
       const y2 = a.y2 + this.oy;
-      const seg = 5;
+      const seg = 7;
       const nx = -(y2 - y1);
       const ny = x2 - x1;
       const len = Math.hypot(nx, ny) || 1;
       const pts = [];
       for (let i = 0; i <= seg; i += 1) {
         const t = i / seg;
-        const j = i === 0 || i === seg ? 0 : (hash2(Math.round(a.x1) + i, Math.round(a.y2) + a.t) - 0.5) * 12;
+        const j = i === 0 || i === seg ? 0 : (hash2(Math.round(a.x1) + i, Math.round(a.y2) + a.t) - 0.5) * 18;
         pts.push([x1 + (x2 - x1) * t + (nx / len) * j, y1 + (y2 - y1) * t + (ny / len) * j]);
       }
       c.save();
-      c.globalAlpha = Math.max(0, 1 - a.t / a.life);
+      // 오래 남기되 끝에서 뚝 끊기지 않게 완만하게 옅어진다
+      const u = Math.max(0, 1 - a.t / a.life) ** 0.55;
       c.lineJoin = 'round';
-      for (const [w, color] of [[4, '#2f6fe0'], [2, '#7fc4ff'], [1, '#ffffff']]) {
+      c.lineCap = 'round';
+      // 흐릿한 겉불꽃 → 파란 속 → 하얀 심지. 겉을 옅게 넓히면 빛나는 것처럼 보인다.
+      // 심지는 끝까지 또렷하게 남겨야 어디로 튀었는지 읽힌다.
+      for (const [w, color, al] of [[10, '#1d4fb0', 0.30], [6, '#2f6fe0', 0.55],
+                                    [3, '#7fc4ff', 0.85], [1.5, '#ffffff', 1]]) {
+        c.globalAlpha = u * al;
         c.strokeStyle = color;
         c.lineWidth = w;
         c.beginPath();

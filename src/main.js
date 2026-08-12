@@ -6,7 +6,7 @@ import { Renderer } from './renderer.js';
 import { InputController } from './input.js';
 import { STEP_MS, MAX_CATCHUP, RUN_SEC } from './config.js';
 import { getBest, mmss, totalGold } from './storage.js';
-import { SKILLS, SKILL_IDS } from './weapons.js';
+import { TRAY, TRAY_IDS } from './weapons.js';
 import { ITEM_TIER } from './config.js';
 import { PASSIVES } from './upgrades.js';
 import { attachDebug } from './debug.js';
@@ -31,8 +31,8 @@ new InputController($('board'), game);
 function fillRecipes() {
   const box = $('recipes');
   if (box.childElementCount) return;
-  for (const id of SKILL_IDS) {
-    const s = SKILLS[id];
+  for (const id of TRAY_IDS) {
+    const s = TRAY[id];
     const row = document.createElement('div');
     row.className = 'recipe';
     row.innerHTML = `<span class="rn">${s.name}</span><i>${s.key}</i>`
@@ -173,7 +173,7 @@ const slotCache = new Map();
 function makeSlot(cls, icon, title, body, key) {
   const el = document.createElement('div');
   el.className = 'slot';
-  el.appendChild(iconCanvas(icon, cls === 'item' ? 2 : 3));
+  el.appendChild(iconCanvas(icon, cls === 'item' ? 2.5 : 3));
   if (key) {
     const k = document.createElement('span');
     k.className = 'key';
@@ -189,8 +189,8 @@ function makeSlot(cls, icon, title, body, key) {
 
 function syncTray(p) {
   if (!skillRow.childElementCount) {
-    for (const id of SKILL_IDS) {
-      const s = SKILLS[id];
+    for (const id of TRAY_IDS) {
+      const s = TRAY[id];
       const el = makeSlot('skill', s.icon, s.name, `${s.desc}<br>쿨타임 ${(s.cd / 60).toFixed(1)}초`, s.key);
       const cd = document.createElement('div');
       cd.className = 'cd';
@@ -200,7 +200,7 @@ function syncTray(p) {
       slotCache.set(id, cd);
     }
   }
-  for (const id of SKILL_IDS) {
+  for (const id of TRAY_IDS) {
     const left = (p.cds && p.cds[id]) || 0;
     const cd = slotCache.get(id);
     cd.style.display = left > 0 ? 'flex' : 'none';

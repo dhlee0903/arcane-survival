@@ -665,16 +665,20 @@ PAL['missile'] = {'k': K, 'd': '#2a3040', 'm': '#6b7789', 'l': '#dbe4f2',
 
 
 def _missile():
-    """AtG 미사일 — 앞이 붉고 뒤로 화염이 뻗는다."""
-    c = Cv(15, 8)
-    c.rect(5, 3, 11, 5, 'm')
-    c.rect(5, 3, 11, 3, 'l')
-    c.rect(11, 3, 13, 5, 'r')                 # 탄두
-    c.put(13, 4, 'o')
-    c.rect(4, 2, 6, 2, 'd')                   # 날개
-    c.rect(4, 6, 6, 6, 'd')
-    for i in range(4):                        # 배기 화염
-        c.put(4 - i, 4, 'y' if i < 2 else 'o')
+    """AtG 미사일 — 앞이 붉고 뒤로 화염이 뻗는다. 눈에 띄어야 해서 큼직하게."""
+    c = Cv(22, 12)
+    c.rect(7, 4, 16, 8, 'm')                  # 동체
+    c.rect(7, 4, 16, 5, 'l')
+    c.rect(7, 8, 16, 8, 'd')
+    c.rect(16, 4, 19, 8, 'r')                 # 탄두
+    c.rect(16, 4, 18, 5, 'o')
+    c.put(20, 6, 'o')
+    c.rect(6, 2, 9, 3, 'd')                   # 날개
+    c.rect(6, 9, 9, 10, 'd')
+    c.rect(14, 3, 16, 3, 'd')                 # 앞 날개
+    c.rect(14, 9, 16, 9, 'd')
+    for i in range(6):                        # 배기 화염
+        c.rect(6 - i, 5 + (i > 2), 6 - i, 7 - (i > 2), 'y' if i < 3 else 'o')
     c.outline('k')
     return c.rows()
 
@@ -936,14 +940,20 @@ sprite('skill.dive', 'item')(_skill_dive)
 
 
 def _item_bear():
-    """곰 인형 — 피해를 통째로 막는다."""
-    c = Cv(16, 16)
+    """곰 인형 — 머리만 있던 것을 팔다리까지 붙은 인형 전체로."""
+    c = Cv(16, 18)
     for side in (-1, 1):                      # 귀
-        c.celsphere(7.5 + side * 5.0, 3.0, 2.8, 2.8, ['m', 'M', 'n'])
-    c.celsphere(7.5, 7.5, 6.4, 6.0, ['m', 'M', 'n'], lo=0.32, hi=0.72)
-    c.celsphere(7.5, 10.0, 3.0, 2.4, ['n', 'n', 'n'])                     # 주둥이
-    c.eyes([(5, 6), (9, 6)], 'k', 'W', w=2, h=2)
-    c.rect(7, 9, 8, 10, 'k')
+        c.celsphere(7.5 + side * 4.4, 2.6, 2.4, 2.4, ['m', 'M', 'n'])
+    for side in (-1, 1):                      # 팔
+        c.celsphere(7.5 + side * 6.0, 11.0, 2.4, 2.6, ['m', 'M', 'n'])
+    for side in (-1, 1):                      # 다리
+        c.celsphere(7.5 + side * 3.6, 15.6, 2.6, 2.4, ['m', 'M', 'n'])
+    c.celsphere(7.5, 12.0, 5.0, 4.4, ['m', 'M', 'n'], lo=0.32, hi=0.72)   # 몸통
+    c.celsphere(7.5, 12.6, 2.6, 2.0, ['n', 'n', 'n'])                     # 배
+    c.celsphere(7.5, 6.0, 5.0, 4.6, ['m', 'M', 'n'], lo=0.32, hi=0.72)    # 머리
+    c.celsphere(7.5, 8.0, 2.4, 1.8, ['n', 'n', 'n'])                      # 주둥이
+    c.eyes([(5, 5), (9, 5)], 'k', 'W', w=2, h=2)
+    c.rect(7, 7, 8, 8, 'k')                                               # 코
     c.outline('k')
     return c.rows()
 
@@ -1004,55 +1014,6 @@ def _item_tooth():
 sprite('item.tooth', 'item')(_item_tooth)
 
 
-def _item_steak():
-    """들소 스테이크 — 최대 체력."""
-    c = Cv(16, 14)
-    c.celsphere(7.5, 7.0, 7.0, 6.0, ['r', 'R', 'p'], lo=0.32, hi=0.72)
-    c.rect(2, 9, 12, 12, 'W')                     # 붙은 지방
-    c.rect(2, 9, 12, 9, 'w')
-    c.rect(10, 2, 13, 4, 'W')                     # 뼈
-    c.put(4, 4, 'p')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.steak', 'item')(_item_steak)
-
-
-def _item_dagger():
-    """삼각 단검 — 출혈."""
-    c = Cv(16, 18)
-    for i in range(11):                           # 삼각 날
-        half = 4.0 * (1 - i / 10)
-        for x in range(int(round(7.5 - half)), int(round(7.5 + half)) + 1):
-            nx = (x - 7.5) / max(1.0, half)
-            c.put(x, 2 + i, 'W' if nx < -0.2 else ('w' if nx < 0.5 else 'a'))
-    c.rect(4, 13, 11, 14, 'a')                    # 코등이
-    c.rect(6, 15, 9, 17, 'm')                     # 손잡이
-    c.put(7, 3, 'R')                              # 날 끝에 묻은 피
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.dagger', 'item')(_item_dagger)
-
-
-def _item_rounds():
-    """관통 탄환 — 보스에게 강하다."""
-    c = Cv(18, 14)
-    for i, x0 in enumerate((1, 7, 13)):
-        h = 11 - i
-        c.rect(x0, 13 - h, x0 + 3, 12, 'a')       # 탄피
-        c.rect(x0, 13 - h, x0, 12, 'w')
-        for j in range(3):                        # 탄두
-            c.rect(x0 + j * 0.5, 12 - h - 3 + j, x0 + 3 - j * 0.5, 12 - h - 3 + j, 'Y')
-    c.outline('k')
-    return c.rows()
-
-
-sprite('item.rounds', 'item')(_item_rounds)
-
-
 def _item_gas():
     """휘발유 — 처치 시 주변을 태운다."""
     c = Cv(16, 18)
@@ -1071,17 +1032,26 @@ sprite('item.gas', 'item')(_item_gas)
 
 
 def _item_crowbar():
-    """크로우바 — 성한 적에게 더 큰 피해."""
+    """크로우바 — 빠루. 갈라진 노루발과 반대쪽으로 꺾인 끝, 이 둘이 실루엣 전부다."""
     c = Cv(18, 18)
-    for i in range(13):                           # 곧은 몸통
-        c.put(3 + i, 14 - i, 'R')
-        c.put(4 + i, 14 - i, 'r')
-        c.put(3 + i, 13 - i, 'p')
-    c.rect(1, 13, 4, 16, 'R')                     # 갈라진 발
-    c.rect(1, 13, 2, 14, 'p')
-    c.put(2, 16, 'k')
-    c.rect(13, 1, 16, 3, 'R')                     # 꺾인 끝
-    c.put(16, 1, 'p')
+    # 몸통 — 왼쪽 아래에서 오른쪽 위로 비스듬히. 두 줄로 두께를 준다
+    for i in range(12):
+        x, y = 4 + i, 13 - i
+        c.put(x, y, 'p')
+        c.put(x + 1, y, 'R')
+        c.put(x + 1, y + 1, 'r')
+    # 노루발 — 못을 빼는 갈라진 발. 아래로 살짝 휘어 붙는다
+    c.rect(1, 12, 5, 14, 'R')
+    c.rect(1, 12, 3, 12, 'p')
+    c.rect(0, 14, 5, 16, 'R')
+    c.put(1, 15, 'r')
+    c.rect(2, 15, 3, 16, 'k')                 # 갈라진 틈(V자)
+    c.put(4, 16, 'r')
+    # 반대쪽 끝 — 90도 가까이 꺾인 짧은 발
+    c.rect(14, 1, 16, 5, 'R')
+    c.rect(14, 1, 14, 4, 'p')
+    c.put(16, 5, 'r')
+    c.put(15, 0, 'k')
     c.outline('k')
     return c.rows()
 
@@ -1090,14 +1060,32 @@ sprite('item.crowbar', 'item')(_item_crowbar)
 
 
 def _item_hoof():
-    """폴의 염소 발굽 — 이동 속도."""
-    c = Cv(14, 18)
-    c.celtaper(7.0, 1, 9, 3.4, 4.6, ['m', 'M', 'n'])      # 털 붙은 다리
-    for y in range(3, 9, 2):                              # 털결
-        c.rect(3, y, 10, y, 'm')
-    c.celtaper(7.0, 9, 16, 5.2, 6.0, ['a', 'w', 'W'])     # 굽
-    c.rect(6, 12, 7, 17, 'k')                             # 갈라진 틈
-    c.rect(1, 16, 12, 17, 'a')
+    """폴의 염소 발굽 — 가는 털 다리 아래로 **두 쪽으로 벌어진 검은 굽**.
+    아이콘은 화면에서 9도트 남짓이라, 다리를 굵게 그리면 굽이 안 읽힌다."""
+    c = Cv(16, 18)
+    cx = 7.5
+    # 정강이 — 가늘게. 위는 털이 부숭하다
+    c.celtaper(cx, 0, 7, 2.6, 2.0, ['m', 'M', 'n'])
+    for y in (1, 3, 5):
+        c.rect(cx - 2.6, y, cx + 2.6, y, 'm')
+    # 털이 굽 위를 덮으며 삐죽 내려온다
+    for x in range(3, 13):
+        c.put(x, 7, 'n' if x % 2 else 'M')
+        c.put(x, 8, 'M')
+    c.put(3, 6, 'm')
+    c.put(12, 6, 'm')
+    # 며느리발톱 — 뒤쪽에 달린 작은 발가락. 이게 있어야 우제류 발로 읽힌다
+    c.rect(12, 9, 13, 11, 'a')
+    c.put(13, 9, 'w')
+    # 굽 — 두 쪽이 아래로 **벌어진다**. 사이를 넉넉히 비워야 갈라진 게 보인다
+    for side, x0 in ((-1, 2), (1, 8)):
+        for i in range(7):                      # 위는 좁고 아래로 벌어진다
+            y = 9 + i
+            lean = int(i * 0.5) * side
+            c.rect(x0 + lean, y, x0 + 4 + lean, y, 'w')
+            c.put(x0 + lean if side < 0 else x0 + 4 + lean, y, 'W' if side < 0 else 'a')
+        c.rect(x0 - (2 if side < 0 else 0), 15, x0 + 4 + (0 if side < 0 else 2), 16, 'a')
+    c.rect(7, 9, 8, 16, 'k')                    # 두 쪽 사이 틈
     c.outline('k')
     return c.rows()
 
@@ -1106,16 +1094,29 @@ sprite('item.hoof', 'item')(_item_hoof)
 
 
 def _item_syringe():
-    """군인의 주사기 — 공격 속도."""
+    """군인의 주사기 — **노란 약액이 가득 찬** 스팀팩. 색이 곧 이 아이템의 얼굴이라
+    원통을 넉넉히 굵게 잡고 안을 노랑으로 채운다."""
     c = Cv(18, 18)
-    for i in range(9):                            # 몸통
-        c.rect(4 + i, 12 - i, 6 + i, 14 - i, 'W')
-        c.put(4 + i, 14 - i, 'w')
-    c.rect(2, 12, 5, 15, 'a')                     # 밀대
-    c.rect(1, 14, 4, 17, 'w')
-    for i in range(4):                            # 바늘
-        c.put(13 + i, 3 - i, 'W')
-    c.rect(7, 9, 9, 11, 'Y')                      # 약액
+    # 원통 — 왼쪽 아래에서 오른쪽 위로 비스듬히. 폭 5도트
+    for i in range(10):
+        x, y = 4 + i, 13 - i
+        c.rect(x, y - 2, x, y + 2, 'Y')         # 노란 약액
+        c.put(x, y - 2, 'c')                    # 유리 윗면 반사
+        c.put(x, y + 2, 'O')                    # 아랫면은 한 단 진하게
+    # 유리 끝 마감 — 위아래로 살짝 튀어나온 테
+    c.rect(3, 11, 4, 16, 'W')
+    c.rect(13, 2, 14, 7, 'W')
+    # 눈금 두 줄
+    for i in (3, 6):
+        x, y = 4 + i, 13 - i
+        c.rect(x, y - 1, x, y + 1, 'w')
+    # 밀대와 손잡이
+    c.rect(1, 13, 3, 16, 'w')
+    c.rect(0, 15, 2, 17, 'W')
+    # 바늘 — 목에서 가늘게 한 줄
+    c.rect(14, 3, 15, 5, 'a')
+    for i in range(4):
+        c.put(15 + i, 3 - i, 'W' if i < 2 else 'C')
     c.outline('k')
     return c.rows()
 
@@ -1124,14 +1125,17 @@ sprite('item.syringe', 'item')(_item_syringe)
 
 
 def _item_glasses():
-    """렌즈 제작자의 안경 — 치명타 확률."""
+    """렌즈 제작자의 안경 — 빨간 렌즈. 치명타 아이템이라 색이 곧 성격이다."""
     c = Cv(20, 12)
     for side in (0, 1):
         x0 = 1 + side * 10
-        c.rect(x0, 3, x0 + 7, 9, 'a')             # 테
-        c.rect(x0 + 1, 4, x0 + 6, 8, 'C')         # 알
-        c.rect(x0 + 1, 4, x0 + 3, 5, 'W')         # 반사
-    c.rect(8, 5, 11, 6, 'a')                      # 코 다리
+        c.rect(x0, 2, x0 + 7, 9, 'a')             # 테
+        c.rect(x0 + 1, 3, x0 + 6, 8, 'R')         # 빨간 알
+        c.rect(x0 + 1, 6, x0 + 6, 8, 'r')         # 아래쪽은 한 단 어둡게
+        c.rect(x0 + 1, 3, x0 + 3, 4, 'p')         # 반사
+    c.rect(8, 4, 11, 5, 'a')                      # 코 다리
+    c.rect(0, 3, 0, 5, 'a')                       # 걸이
+    c.rect(19, 3, 19, 5, 'a')
     c.outline('k')
     return c.rows()
 
