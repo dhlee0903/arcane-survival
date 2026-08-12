@@ -242,14 +242,31 @@ export class Renderer {
       const f = this.frames[name];
       if (!f) continue;
       const a = Math.atan2(p.vy, p.vx);
-      if (p.trail) {                            // 위상조정탄 — 긴 궤적
+      if (p.trail) {
+        // 지나온 길을 그대로 긋는다 — 쏜 자리(x0,y0)부터 지금까지, 최대 trail 길이만큼.
+        // 방향으로 무작정 뒤로 긋던 예전 방식은 아직 날아오지 않은 구간까지 그렸다.
+        const flown = Math.hypot(p.x - p.x0, p.y - p.y0);
+        const len = Math.min(flown, p.trail);
+        const tx = p.x - Math.cos(a) * len;
+        const ty = p.y - Math.sin(a) * len;
         c.save();
-        c.globalAlpha = 0.5;
-        c.strokeStyle = p.trailColor || '#6fc8ff';
-        c.lineWidth = 2;
+        const grad = c.createLinearGradient(tx + this.ox, ty + this.oy, p.x + this.ox, p.y + this.oy);
+        grad.addColorStop(0, 'rgba(47,111,224,0)');
+        grad.addColorStop(0.5, 'rgba(63,138,232,.5)');
+        grad.addColorStop(1, p.trailColor || '#6fc8ff');
+        c.strokeStyle = grad;
+        c.lineCap = 'round';
+        c.lineWidth = 3;
         c.beginPath();
-        c.moveTo(p.x + this.ox, p.y + this.oy);
-        c.lineTo(p.x + this.ox - Math.cos(a) * p.trail * 2, p.y + this.oy - Math.sin(a) * p.trail * 2);
+        c.moveTo(tx + this.ox, ty + this.oy);
+        c.lineTo(p.x + this.ox, p.y + this.oy);
+        c.stroke();
+        c.globalAlpha = 0.7;                    // 심지 — 가운데 하얀 선
+        c.strokeStyle = '#ffffff';
+        c.lineWidth = 1;
+        c.beginPath();
+        c.moveTo(tx + this.ox, ty + this.oy);
+        c.lineTo(p.x + this.ox, p.y + this.oy);
         c.stroke();
         c.restore();
       }
