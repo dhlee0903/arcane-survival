@@ -1,6 +1,6 @@
 // 먼 곳의 횃대 — 상수 (single source of truth).
 
-export const VERSION = 'v5.5';
+export const VERSION = 'v5.6';
 
 // 로직은 초당 60회 고정. 아래 값은 모두 "1스텝(1/60초)당" 기준이다.
 export const STEP_MS = 1000 / 60;
@@ -121,9 +121,8 @@ export const BARREL = {
   every: 60 * 9,        // 소환 간격(스텝)
   max: 5,               // 동시에 존재할 수 있는 수
   loot: [
-    ['coin', 0.55],
-    ['heart', 0.25],
-    ['magnet', 0.20],
+    ['coin', 0.62],
+    ['heart', 0.38],
   ],
 };
 
@@ -143,7 +142,6 @@ export const MAX_ENEMIES = 90;       // 이 수를 넘으면 새로 소환하지
 // ---- 낙하물 ----
 export const DROP = {
   heartChance: 0.012,   // 일반 적 처치 시
-  magnetChance: 0.005,
   chestFromElite: true,
   life: 60 * 25,        // 보석 외 낙하물이 사라지기까지
 };
