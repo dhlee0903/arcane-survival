@@ -7,34 +7,38 @@ import { view, areaScale, MAX_ENEMIES } from './config.js';
 
 const S = (sec) => sec * 60;   // 초 → 스텝
 
+// 적 체력을 2배 넘게 올린 만큼(config.js ENEMY) 소환 간격도 늘렸다. 화면에 동시에
+// 서 있는 수는 비슷하되 한 마리 한 마리가 오래 버틴다 — 쓸어담는 게 아니라 겨눠 잡는 쪽.
+// 뭉치기(burst 2)는 없앴다. 두 배 튼튼한 적이 두 마리씩 붙으면 벽이 된다.
 export const PHASES = [
-  { at: S(0), kinds: [['lemurian', 1]], every: 130, burst: 1 },
-  { at: S(40), kinds: [['lemurian', 4], ['wisp', 2]], every: 100, burst: 1 },
-  { at: S(90), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 2]], every: 82, burst: 1 },
-  { at: S(150), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 3]], every: 66, burst: 2 },
-  { at: S(230), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 3], ['beetle', 2]], every: 40, burst: 2 },
-  { at: S(330), kinds: [['lemurian', 3], ['wisp', 2], ['jellyfish', 3], ['beetle', 3]], every: 37, burst: 2 },
-  { at: S(430), kinds: [['lemurian', 3], ['jellyfish', 3], ['beetle', 4]], every: 34, burst: 2 },
-  { at: S(540), kinds: [['lemurian', 3], ['wisp', 3], ['beetle', 5]], every: 30, burst: 2 },
-  { at: S(660), kinds: [['lemurian', 4], ['jellyfish', 4], ['beetle', 5]], every: 27, burst: 2 },
-  { at: S(780), kinds: [['lemurian', 4], ['wisp', 4], ['jellyfish', 4], ['beetle', 6]], every: 23, burst: 2 },
+  { at: S(0), kinds: [['lemurian', 1]], every: 290, burst: 1 },
+  { at: S(40), kinds: [['lemurian', 4], ['wisp', 2]], every: 225, burst: 1 },
+  { at: S(90), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 2]], every: 185, burst: 1 },
+  { at: S(150), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 3]], every: 148, burst: 1 },
+  { at: S(230), kinds: [['lemurian', 4], ['wisp', 2], ['jellyfish', 3], ['beetle', 2]], every: 120, burst: 1 },
+  { at: S(330), kinds: [['lemurian', 3], ['wisp', 2], ['jellyfish', 3], ['beetle', 3]], every: 102, burst: 1 },
+  { at: S(430), kinds: [['lemurian', 3], ['jellyfish', 3], ['beetle', 4]], every: 88, burst: 1 },
+  { at: S(540), kinds: [['lemurian', 3], ['wisp', 3], ['beetle', 5]], every: 76, burst: 1 },
+  { at: S(660), kinds: [['lemurian', 4], ['jellyfish', 4], ['beetle', 5]], every: 64, burst: 1 },
+  { at: S(780), kinds: [['lemurian', 4], ['wisp', 4], ['jellyfish', 4], ['beetle', 6]], every: 54, burst: 1 },
 ];
 
 // 정해진 시각에 한 번만 터지는 사건. 포위(ring) · 무리(line) · 엘리트 · 보스.
+// 마릿수는 체력을 올리면서 같이 줄였다 — 사건은 "많이"가 아니라 "덩어리로" 온다.
 export const EVENTS = [
-  { at: S(75), type: 'ring', kind: 'wisp', n: 9 },
-  { at: S(140), type: 'line', kind: 'jellyfish', n: 7 },
-  { at: S(200), type: 'elite', kind: 'guard', n: 6 },
-  { at: S(260), type: 'ring', kind: 'lemurian', n: 12 },
+  { at: S(75), type: 'ring', kind: 'wisp', n: 6 },
+  { at: S(140), type: 'line', kind: 'jellyfish', n: 5 },
+  { at: S(200), type: 'elite', kind: 'guard', n: 3 },
+  { at: S(260), type: 'ring', kind: 'lemurian', n: 8 },
   { at: S(300), type: 'boss', kind: 'titan' },
-  { at: S(380), type: 'elite', kind: 'guard', n: 6 },
-  { at: S(440), type: 'line', kind: 'beetle', n: 8 },
-  { at: S(500), type: 'ring', kind: 'lemurian', n: 14 },
-  { at: S(560), type: 'elite', kind: 'guard', n: 6 },
+  { at: S(380), type: 'elite', kind: 'guard', n: 3 },
+  { at: S(440), type: 'line', kind: 'beetle', n: 5 },
+  { at: S(500), type: 'ring', kind: 'lemurian', n: 9 },
+  { at: S(560), type: 'elite', kind: 'guard', n: 4 },
   { at: S(600), type: 'boss', kind: 'titan' },
-  { at: S(680), type: 'ring', kind: 'beetle', n: 13 },
-  { at: S(740), type: 'elite', kind: 'guard', n: 6 },
-  { at: S(800), type: 'line', kind: 'lemurian', n: 13 },
+  { at: S(680), type: 'ring', kind: 'beetle', n: 8 },
+  { at: S(740), type: 'elite', kind: 'guard', n: 4 },
+  { at: S(800), type: 'line', kind: 'lemurian', n: 9 },
   { at: S(860), type: 'boss', kind: 'titan' },
 ];
 
