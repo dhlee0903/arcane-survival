@@ -31,12 +31,12 @@ export const SKILLS = {
     desc: '관통탄 300% · 적을 뚫을 때마다 피해 +40%',
     coef: 3.0,
     cd: 180,             // 3초
-    speed: 9.0,
+    speed: 15.0,
     r: 6,
     fire(g, dir) {
       g.shoot(dir, {
         coef: this.coef, speed: this.speed, r: this.r, pierce: 99,
-        spr: 'phase', grow: 0.4, life: 130, trail: 800, trailColor: '#6fc8ff', ghost: 10,
+        spr: 'phase', grow: 0.4, life: 130, trail: 800, trailColor: '#6fc8ff',
       });
     },
   },
