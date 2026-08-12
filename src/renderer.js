@@ -95,6 +95,7 @@ export class Renderer {
     this.chests(c, g);
     this.enemyShots(c, g);
     this.beams(c, g);
+    this.arcs(c, g);
     this.zaps(c, g);
     this.parts(c, g);
     if (this.showHitbox) this.hitboxes(c, g);
@@ -364,6 +365,38 @@ export class Renderer {
     }
   }
 
+
+  // 우쿨렐레 연쇄 번개 — 파란 전기에 하얀 심지. 곧게 잇지 않고 지그재그로 꺾는다
+  arcs(c, g) {
+    for (const a of g.arcs) {
+      const x1 = a.x1 + this.ox;
+      const y1 = a.y1 + this.oy;
+      const x2 = a.x2 + this.ox;
+      const y2 = a.y2 + this.oy;
+      const seg = 5;
+      const nx = -(y2 - y1);
+      const ny = x2 - x1;
+      const len = Math.hypot(nx, ny) || 1;
+      const pts = [];
+      for (let i = 0; i <= seg; i += 1) {
+        const t = i / seg;
+        const j = i === 0 || i === seg ? 0 : (hash2(Math.round(a.x1) + i, Math.round(a.y2) + a.t) - 0.5) * 12;
+        pts.push([x1 + (x2 - x1) * t + (nx / len) * j, y1 + (y2 - y1) * t + (ny / len) * j]);
+      }
+      c.save();
+      c.globalAlpha = Math.max(0, 1 - a.t / a.life);
+      c.lineJoin = 'round';
+      for (const [w, color] of [[4, '#2f6fe0'], [2, '#7fc4ff'], [1, '#ffffff']]) {
+        c.strokeStyle = color;
+        c.lineWidth = w;
+        c.beginPath();
+        c.moveTo(pts[0][0], pts[0][1]);
+        for (const [px, py] of pts.slice(1)) c.lineTo(px, py);
+        c.stroke();
+      }
+      c.restore();
+    }
+  }
 
   zaps(c, g) {
     for (const z of g.zaps) {

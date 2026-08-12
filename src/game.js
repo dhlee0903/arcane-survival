@@ -77,6 +77,7 @@ export class Game {
     this.aimStick = null;  // 터치 조준 스틱
     this.cds = { primary: 0, special: 0, special2: 0, dodge: 0 };
     this.chests = [];      // 맵에 흩어진 상자 — 찾아서 골드로 연다
+    this.arcs = [];        // 우쿨렐레 전기 아크
     this.sites = new Set();   // 이미 훑은 칸
     this.pops = [];        // 화면에 떠오르는 숫자(골드)
     this.loot = [];        // 상자에서 떨어져 나와 바닥에 놓인 아이템
@@ -325,7 +326,8 @@ export class Game {
         if (site.kind === 'chest') {
           this.chests.push({
             x, y, tier: site.tier.id, open: false, t: 0,
-            price: Math.round(site.tier.price * (1 + (this.t / 3600) * 0.4)),
+            // 값은 **생길 때** 정해지고 그대로 굳는다. 뒤로 갈수록 새 상자가 비싸진다
+            price: Math.round(site.tier.price * (1 + (this.t / 3600) * 1.1)),
           });
         } else {
           this.spawn('barrel', { x, y });
@@ -373,6 +375,8 @@ export class Game {
   }
 
   tickPops() {
+    for (const a of this.arcs) a.t += 1;
+    this.arcs = this.arcs.filter((a) => a.t < a.life);
     for (const p of this.pops) p.t += 1;
     this.pops = this.pops.filter((p) => p.t < p.life);
     for (const f of this.pickFx) f.t += 1;
@@ -497,14 +501,16 @@ export class Game {
   }
 
   // 택티컬 다이브 — 적 반대쪽으로 굴러 빠져나간다. 구르는 동안 무적
+  // 구르는 방향은 **누르고 있는 방향키**다. 아무것도 안 누르면 적 반대쪽으로 뺀다.
   startDive(s) {
-    const near = this.nearestEnemies(this.px, this.py, 200, 3);
-    let ax = 0;
-    let ay = 0;
-    for (const e of near) {
-      const d = Math.hypot(e.x - this.px, e.y - this.py) || 1;
-      ax -= (e.x - this.px) / d;
-      ay -= (e.y - this.py) / d;
+    let ax = this.inx || 0;
+    let ay = this.iny || 0;
+    if (ax === 0 && ay === 0) {
+      for (const e of this.nearestEnemies(this.px, this.py, 200, 3)) {
+        const d = Math.hypot(e.x - this.px, e.y - this.py) || 1;
+        ax -= (e.x - this.px) / d;
+        ay -= (e.y - this.py) / d;
+      }
     }
     if (ax === 0 && ay === 0) { ax = this.faceX; ay = 0; }
     const n = Math.hypot(ax, ay) || 1;
@@ -519,17 +525,25 @@ export class Game {
   // 아이템 프록 — 우쿨렐레(연쇄 번개)와 AtG(유도 미사일)
   procItems(e, dmg) {
     if (this.mods.uke > 0 && this.rnd() < 0.25) {
+      // 원작처럼 가까운 적으로만 옮겨 붙는다. 첫 도약은 90, 이후는 70 안쪽만.
       const chains = 2 + this.mods.uke;
-      const near = [];
-      for (const o of this.enemies) {
-        if (o.dead || o === e || o.prop) continue;
-        const d = Math.hypot(o.x - e.x, o.y - e.y);
-        if (d < 90) near.push([d, o]);
-      }
-      near.sort((a, b) => a[0] - b[0]);
-      for (const [, o] of near.slice(0, chains)) {
-        this.zaps.push({ x: o.x, y: o.y, t: 0, life: 10, splash: 0, dmg: 0 });
-        this.damageEnemy(o, Math.round(dmg * 0.8), { proc: false });
+      let from = e;
+      let reach = 90;
+      const hit = new Set([e.id]);
+      for (let i = 0; i < chains; i += 1) {
+        let best = null;
+        let bd = reach;
+        for (const o of this.enemies) {
+          if (o.dead || o.prop || hit.has(o.id)) continue;
+          const d = Math.hypot(o.x - from.x, o.y - from.y);
+          if (d < bd) { bd = d; best = o; }
+        }
+        if (!best) break;                       // 닿을 적이 없으면 거기서 끊긴다
+        hit.add(best.id);
+        this.arcs.push({ x1: from.x, y1: from.y - from.r * 0.5, x2: best.x, y2: best.y - best.r * 0.5, t: 0, life: 9 });
+        this.damageEnemy(best, Math.round(dmg * 0.8), { proc: false });
+        from = best;
+        reach = 70;
       }
     }
     if (this.mods.atg > 0 && this.rnd() < 0.10) {
@@ -845,7 +859,6 @@ export class Game {
     }
     const r = this.rnd();
     if (r < DROP.heartChance) this.drops.push({ kind: 'heart', x: e.x, y: e.y, life: DROP.life });
-    else if (r < DROP.heartChance + DROP.magnetChance) this.drops.push({ kind: 'magnet', x: e.x, y: e.y, life: DROP.life });
   }
 
   hurt(dmg) {
@@ -888,8 +901,6 @@ export class Game {
     } else if (d.kind === 'heart') {
       this.hp = Math.min(this.maxHp, this.hp + HEART_HEAL);
       this.banner('회복', 60);
-    } else if (d.kind === 'magnet') {
-      this.banner('보석 흡수', 60);
     } else if (d.kind === 'chest') {
       this.openChest();
     }
