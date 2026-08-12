@@ -98,9 +98,8 @@ ORDER = [
     ('// ---- 적이 쏘는 것 ----', ['ember', 'spit']),
     ('// ---- 스킬 · 아이템 아이콘 ----',
      ['skill.tap', 'skill.phase', 'skill.suppress', 'skill.frag', 'skill.dive',
-      'item.crowbar', 'item.hoof', 'item.bear', 'item.syringe', 'item.ukulele',
-      'item.atg', 'item.glasses', 'item.tooth',
-      'item.steak', 'item.dagger', 'item.rounds', 'item.gas']),
+      'item.crowbar', 'item.hoof', 'item.bear', 'item.syringe', 'item.glasses',
+      'item.gas', 'item.tooth', 'item.ukulele', 'item.atg']),
 ]
 LIFT = {'wisp.0': 1, 'wisp.1': 0, 'jellyfish.0': 1, 'jellyfish.1': 0,
         'lemurian.0': 0, 'lemurian.1': 1, 'beetle.0': 0, 'beetle.1': 1,

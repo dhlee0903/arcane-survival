@@ -11,7 +11,7 @@ import {
   DROP, HEART_HEAL, BARREL, COIN_VALUE, ESHOT_LIFE, xpNeed, ITEM_TIER, CHEST_TIERS,
   BOULDER, hash2, FX,
 } from './config.js';
-import { SKILLS, SKILL_IDS } from './weapons.js';
+import { SKILLS, SKILL_IDS, TRAY, TRAY_IDS } from './weapons.js';
 import { modsOf, rollItem, PASSIVES } from './upgrades.js';
 import { Spawner } from './spawner.js';
 import { Animator } from './anim.js';
@@ -84,6 +84,7 @@ export class Game {
     this.pops = [];        // 화면에 떠오르는 숫자(골드)
     this.loot = [];        // 상자에서 떨어져 나와 바닥에 놓인 아이템
     this.pickFx = [];      // 주운 아이템이 머리 위로 떴다 사라진다
+    this.ready = [];       // 쿨타임이 돌아온 스킬 아이콘 — 머리 위에 잠깐 떴다 사라진다
     this.potCd = 60 * 4;    // 첫 항아리는 조금 일찍
 
     // 시작 무기는 뱀서처럼 하나만 — 나머지는 레벨업으로 얻는다
@@ -185,9 +186,6 @@ export class Game {
       }
     }
 
-    // 들소 스테이크는 최대 체력을 직접 올린다
-    const bonus = this.mods.steak || 0;
-    if (this.hpBonus !== bonus) { this.maxHp += bonus - (this.hpBonus || 0); this.hp += bonus - (this.hpBonus || 0); this.hpBonus = bonus; }
     if (this.hp > this.maxHp) this.hp = this.maxHp;
     if (this.xp >= this.xpNext) this.levelUp();
     if (this.hp <= 0) this.finish('over');
@@ -269,8 +267,15 @@ export class Game {
   }
 
   tickSkills() {
-    for (const id of SKILL_IDS) if (this.cds[id] > 0) this.cds[id] -= 1;
-    if (this.cds.dodge > 0) this.cds.dodge -= 1;
+    // 쿨타임이 **막 돌아온 순간**을 잡아 머리 위에 아이콘을 띄운다.
+    // 화면 아래 트레이의 숫자만으로는 언제 다시 쓸 수 있는지 눈이 못 따라간다 —
+    // 손이 있는 곳(캐릭터)에서 알려 줘야 보고 바로 누른다.
+    for (const id of TRAY_IDS) {
+      if (this.cds[id] > 0) {
+        this.cds[id] -= 1;
+        if (this.cds[id] <= 0) this.ready.push({ icon: TRAY[id].icon, t: 0, life: 46 });
+      }
+    }
 
     if (this.want.dodge && this.cds.dodge <= 0 && this.diveT <= 0) {
       this.cds.dodge = PLAYER.dodgeCd;
@@ -447,6 +452,8 @@ export class Game {
     this.pops = this.pops.filter((p) => p.t < p.life);
     for (const f of this.pickFx) f.t += 1;
     this.pickFx = this.pickFx.filter((f) => f.t < f.life);
+    for (const r of this.ready) r.t += 1;
+    this.ready = this.ready.filter((r) => r.t < r.life);
   }
 
   // 여기서 필드를 골라 담기 때문에, 새 옵션을 넣을 때 이 목록에 빠뜨리면 조용히 사라진다.
@@ -550,22 +557,32 @@ export class Game {
     this.zaps = keep;
   }
 
+  // 휘발유 — 죽은 자리에서 한 번 터진다. **곁에 붙은 적만** 휩쓴다.
+  // 예전 장판(반지름 26 + 8/중첩)보다 범위를 80% 줄였다. 넓게 깔면 아무것도 안 해도
+  // 알아서 치워져서, 무엇에 죽었는지 보이지 않았다.
+  gasBurst(e) {
+    const r = (26 + this.mods.gas * 8) * 0.2;
+    const dmg = Math.round(this.damage() * 1.5 * this.mods.gas);
+    this.patches.push({ x: e.x, y: e.y, r, life: 26, t: 0 });
+    this.spark(e.x, e.y, 8, '#ff7a1a');
+    for (const o of this.enemies) {
+      if (o.dead || o === e) continue;
+      const dx = o.x - e.x;
+      const dy = (o.y - e.y) / 0.7;
+      const rr = r + o.r;
+      if (dx * dx + dy * dy > rr * rr) continue;
+      // proc:false — 터진 불이 또 프록을 굴리면 연쇄가 끝없이 번진다
+      this.damageEnemy(o, dmg, { knock: 0, proc: false });
+    }
+  }
+
+  // 휘발유가 터지고 남기는 불꽃 — 피해는 터지는 순간 이미 다 들어갔고
+  // 여기 남는 건 눈으로 보이는 잔불뿐이다(짧게 피었다 꺼진다).
   tickPatches() {
     const keep = [];
     for (const f of this.patches) {
       f.t += 1;
       f.life -= 1;
-      f.tick -= 1;
-      if (f.tick <= 0) {
-        f.tick = 20;
-        for (const e of this.enemies) {
-          if (e.dead) continue;
-          const dx = e.x - f.x;
-          const dy = (e.y - f.y) / 0.7;
-          const rr = f.r + e.r;
-          if (dx * dx + dy * dy <= rr * rr) this.damageEnemy(e, f.dmg, { knock: 0 });
-        }
-      }
       if (f.life > 0) keep.push(f);
     }
     this.patches = keep;
@@ -630,7 +647,7 @@ export class Game {
         }
         if (!best) break;                       // 닿을 적이 없으면 거기서 끊긴다
         hit.add(best.id);
-        this.arcs.push({ x1: from.x, y1: from.y - from.r * 0.5, x2: best.x, y2: best.y - best.r * 0.5, t: 0, life: 9 });
+        this.arcs.push({ x1: from.x, y1: from.y - from.r * 0.5, x2: best.x, y2: best.y - best.r * 0.5, t: 0, life: 26 });
         this.damageEnemy(best, Math.round(dmg * 0.8), { proc: false });
         from = best;
         reach = 70;
@@ -640,7 +657,7 @@ export class Game {
       for (let i = 0; i < this.mods.atg; i += 1) {
         this.projectiles.push({
           x: this.px, y: this.py - 8, vx: 0, vy: -2.4, spr: 'missile', clip: null,
-          dmg: Math.round(dmg * 3), pierce: 0, r: 6, life: 150, homing: 0.16, target: e.id, flip: false,
+          dmg: Math.round(dmg * 3), pierce: 0, r: 9, life: 150, homing: 0.16, target: e.id, flip: false,
         });
       }
     }
@@ -767,15 +784,6 @@ export class Game {
       if (e.dead) continue;
       e.t += 1;
       if (e.flash > 0) e.flash -= 1;
-      if (e.bleed > 0) {                    // 출혈 — 12스텝마다 한 조각씩
-        e.bleedT = (e.bleedT || 0) + 1;
-        if (e.bleedT % 12 === 0) {
-          const tick = Math.max(1, Math.round(e.bleed / 5));
-          e.bleed -= tick;
-          this.spark(e.x, e.y - e.r * 0.5, 2, '#e8394f');
-          this.damageEnemy(e, tick, { proc: false });
-        }
-      }
       if (e.flashCd > 0) e.flashCd -= 1;
 
       if (e.prop) { alive.push(e); continue; }   // 항아리는 제자리에 가만히 있는다
@@ -872,7 +880,6 @@ export class Game {
     if (e.dead) return;
     // 크로우바 — 아직 성한 적에게만 붙는다
     if (this.mods.crowbar > 0 && e.hp >= e.maxHp * 0.9) dmg *= 1 + this.mods.crowbar;
-    if (this.mods.boss > 0 && (e.boss || e.elite)) dmg *= 1 + this.mods.boss;   // 관통 탄환
     const crit = this.mods.crit > 0 && this.rnd() < this.mods.crit;
     if (crit) {
       dmg *= 2;
@@ -881,11 +888,6 @@ export class Game {
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
     if (opt.proc !== false && !e.prop) this.procItems(e, dmg);
-    // 삼각 단검 — 출혈. 시간에 걸쳐 기본 피해의 240%가 들어간다
-    if (opt.proc !== false && this.mods.bleed > 0 && this.rnd() < this.mods.bleed) {
-      e.bleed = (e.bleed || 0) + Math.round(this.damage() * 2.4);
-      e.bleedT = 0;
-    }
     // 계속 때리는 스킬 안에 있으면 매 프레임 흰색으로 타 실루엣만 남는다.
     // 번쩍인 뒤에는 잠깐 쉬게 해서 원래 그림이 보이게 한다.
     if (e.flashCd <= 0) { e.flash = FX.hitFlash; e.flashCd = FX.hitFlash + 10; }
@@ -905,14 +907,10 @@ export class Game {
     this.gold += g;
     this.pops.push({ x: e.x, y: e.y - e.r, t: 0, life: 46, text: `+${g}`, color: '#ffd23f' });
     this.xp += ENEMY[e.kind].gem * 4 + 3;
+    // 휘발유 — 죽는 **즉시** 곁에 붙은 적이 터진다. 장판을 깔아 두던 예전 방식은
+    // 이미 지나간 자리에 남아 있어서 언제 무엇에 맞았는지 읽히지 않았다.
+    if (this.mods.gas > 0) this.gasBurst(e);
     // 몬스터의 이빨 — 처치할 때마다 작은 회복 구슬이 떨어진다
-    // 휘발유 — 죽은 자리가 불탄다
-    if (this.mods.gas > 0) {
-      this.patches.push({
-        x: e.x, y: e.y, r: 26 + this.mods.gas * 8, life: 60,
-        dmg: Math.round(this.damage() * 1.5 * this.mods.gas), t: 0, tick: 0,
-      });
-    }
     if (this.mods.tooth > 0) {
       this.drops.push({ kind: 'tooth', x: e.x, y: e.y, life: DROP.life, heal: 6 + this.mods.tooth * 2 });
     }

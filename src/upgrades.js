@@ -8,16 +8,13 @@ export const PASSIVES = {
   // 같은 스킬을 써도 무엇을 들었느냐에 따라 화면이 달라진다(원작의 프록).
   crowbar: { tier: 'common', name: '크로우바', color: '#e8394f', desc: '체력 90% 이상 적에게 피해 +75%', step: 0.75, icon: 'item.crowbar' },
   hoof: { tier: 'common', name: '폴의 염소 발굽', color: '#c19a6b', desc: '이동 속도 +14%', step: 0.14, icon: 'item.hoof' },
-  bear: { tier: 'rare', name: '곰 인형', color: '#f0a8ff', desc: '피해를 통째로 막을 확률 +15%', step: 0.15, icon: 'item.bear' },
   syringe: { tier: 'common', name: '군인의 주사기', color: '#ffd23f', desc: '공격 속도 +15%', step: 0.15, icon: 'item.syringe' },
-  ukulele: { tier: 'rare', name: '우쿨렐레', color: '#c19a6b', desc: '타격 시 25% 확률로 번개가 튄다', step: 1, icon: 'item.ukulele' },
-  atg: { tier: 'legend', name: 'AtG 미사일 Mk.1', color: '#a8dcff', desc: '타격 시 10% 확률로 유도 미사일', step: 1, icon: 'item.atg' },
-  glasses: { tier: 'rare', name: '렌즈 제작자의 안경', color: '#a8dcff', desc: '치명타 확률 +7%', step: 0.07, icon: 'item.glasses' },
-  steak: { tier: 'common', name: '들소 스테이크', color: '#e8394f', desc: '최대 체력 +25 (중첩당 +25)', step: 25, icon: 'item.steak' },
-  dagger: { tier: 'common', name: '삼각 단검', color: '#dbe4f2', desc: '타격 시 10% 확률로 출혈 · 240% 피해 (중첩당 +10%)', step: 0.10, icon: 'item.dagger' },
-  rounds: { tier: 'common', name: '관통 탄환', color: '#ffd23f', desc: '보스에게 피해 +20% (중첩당 +20%)', step: 0.20, icon: 'item.rounds' },
-  gas: { tier: 'rare', name: '휘발유', color: '#ff7a1a', desc: '처치 시 주변을 태운다 · 150% 피해 (중첩당 +150%)', step: 1.5, icon: 'item.gas' },
+  bear: { tier: 'common', name: '곰 인형', color: '#f0a8ff', desc: '피해를 통째로 막을 확률 +15%', step: 0.15, icon: 'item.bear' },
+  glasses: { tier: 'common', name: '렌즈 제작자의 안경', color: '#e8394f', desc: '치명타 확률 +7%', step: 0.07, icon: 'item.glasses' },
+  gas: { tier: 'common', name: '휘발유', color: '#ff7a1a', desc: '처치 시 곁에 붙은 적이 터진다 · 150% 피해 (중첩당 +150%)', step: 1.5, icon: 'item.gas' },
   tooth: { tier: 'common', name: '몬스터의 이빨', color: '#ffffff', desc: '처치 시 회복 구슬을 떨군다', step: 1, icon: 'item.tooth' },
+  ukulele: { tier: 'rare', name: '우쿨렐레', color: '#c19a6b', desc: '타격 시 25% 확률로 번개가 튄다', step: 1, icon: 'item.ukulele' },
+  atg: { tier: 'rare', name: 'AtG 미사일 Mk.1', color: '#a8dcff', desc: '타격 시 10% 확률로 유도 미사일', step: 1, icon: 'item.atg' },
 };
 
 export const PASSIVE_IDS = Object.keys(PASSIVES);
@@ -36,9 +33,6 @@ export function modsOf(passives) {
     atg: lv('atg'),
     crit: lv('glasses') * PASSIVES.glasses.step,
     tooth: lv('tooth'),
-    steak: lv('steak') * PASSIVES.steak.step,
-    bleed: lv('dagger') * PASSIVES.dagger.step,
-    boss: lv('rounds') * PASSIVES.rounds.step,
     gas: lv('gas'),
     hp: 0,
     area: 1,
@@ -46,9 +40,16 @@ export function modsOf(passives) {
   };
 }
 
-// 상자에서 나올 아이템 하나 — 원작처럼 무작위다(이미 가진 것이면 중첩된다)
+// 상자에서 나올 아이템 하나 — 원작처럼 무작위다(이미 가진 것이면 중첩된다).
+// 그 등급에 아이템이 하나도 없으면 **한 등급씩 내려가며** 찾는다. 지금은 전설이 비어
+// 있어서 전설 상자가 레어를 준다 — 비싼 상자가 일반을 뱉는 것보다는 낫다.
+const TIER_ORDER = ['legend', 'rare', 'common'];
+
 export function rollItem(rnd, tier = 'common') {
-  const pool = PASSIVE_IDS.filter((id) => PASSIVES[id].tier === tier);
-  const from = pool.length ? pool : PASSIVE_IDS;
-  return from[Math.floor(rnd() * from.length)];
+  const start = Math.max(0, TIER_ORDER.indexOf(tier));
+  for (let i = start; i < TIER_ORDER.length; i += 1) {
+    const pool = PASSIVE_IDS.filter((id) => PASSIVES[id].tier === TIER_ORDER[i]);
+    if (pool.length) return pool[Math.floor(rnd() * pool.length)];
+  }
+  return PASSIVE_IDS[Math.floor(rnd() * PASSIVE_IDS.length)];
 }

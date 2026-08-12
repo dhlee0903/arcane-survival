@@ -4,6 +4,9 @@
 //   기본공격(좌클릭)  2연사        두 발 · 발당 100% · 쿨타임이 공격 속도에 비례
 //   특수공격(우클릭)  위상조정탄   300% 관통 · 관통할 때마다 피해 +40% · 3초
 //   특수공격2(R)      제압사격     탄당 100% · 공격 속도만큼 발사 수가 는다 · 9초
+//   회피(Shift)       구르기       쏘는 게 아니라 SKILLS 밖에 둔다(아래 DODGE)
+
+import { PLAYER } from './config.js';
 
 export const SKILLS = {
   primary: {
@@ -65,3 +68,18 @@ export const SKILLS = {
 };
 
 export const SKILL_IDS = ['primary', 'special', 'special2'];
+
+// 회피는 SKILLS에 넣지 않는다 — 쏘는 게 아니라 fire()가 없고, tickSkills의 발사
+// 분기를 타면 안 된다. 다만 **쿨타임이 있다**는 점은 같으므로 트레이와 머리 위
+// 알림에는 나머지와 똑같이 나와야 한다. 그 표시용 정의만 여기 둔다.
+export const DODGE = {
+  name: '회피',
+  key: 'Shift',
+  icon: 'skill.dive',
+  desc: '굴러서 빠져나간다 · 구르는 동안 무적',
+  cd: PLAYER.dodgeCd,
+};
+
+// 쿨타임을 보여 주는 것 전부 — 트레이에 늘어놓는 순서이자 머리 위 알림의 대상
+export const TRAY_IDS = [...SKILL_IDS, 'dodge'];
+export const TRAY = { ...SKILLS, dodge: DODGE };
