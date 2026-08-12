@@ -11,7 +11,7 @@ import {
   DROP, HEART_HEAL, BARREL, COIN_VALUE, ESHOT_LIFE, xpNeed, ITEM_TIER, CHEST_TIERS,
   BOULDER, hash2, FX,
 } from './config.js';
-import { SKILLS, SKILL_IDS, TRAY, TRAY_IDS } from './weapons.js';
+import { SKILLS, SKILL_IDS, TRAY, TRAY_IDS, READY_IDS } from './weapons.js';
 import { modsOf, rollItem, PASSIVES } from './upgrades.js';
 import { Spawner } from './spawner.js';
 import { Animator } from './anim.js';
@@ -270,10 +270,13 @@ export class Game {
     // 쿨타임이 **막 돌아온 순간**을 잡아 머리 위에 아이콘을 띄운다.
     // 화면 아래 트레이의 숫자만으로는 언제 다시 쓸 수 있는지 눈이 못 따라간다 —
     // 손이 있는 곳(캐릭터)에서 알려 줘야 보고 바로 누른다.
+    // 기본공격은 대상이 아니다(READY_IDS) — 초당 두 번씩 떠서 알림이 소음이 된다.
     for (const id of TRAY_IDS) {
       if (this.cds[id] > 0) {
         this.cds[id] -= 1;
-        if (this.cds[id] <= 0) this.ready.push({ icon: TRAY[id].icon, t: 0, life: 46 });
+        if (this.cds[id] <= 0 && READY_IDS.includes(id)) {
+          this.ready.push({ icon: TRAY[id].icon, t: 0, life: 46 });
+        }
       }
     }
 

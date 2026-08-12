@@ -80,6 +80,11 @@ export const DODGE = {
   cd: PLAYER.dodgeCd,
 };
 
-// 쿨타임을 보여 주는 것 전부 — 트레이에 늘어놓는 순서이자 머리 위 알림의 대상
+// 쿨타임을 보여 주는 것 전부 — 트레이에 늘어놓는 순서
 export const TRAY_IDS = [...SKILL_IDS, 'dodge'];
 export const TRAY = { ...SKILLS, dodge: DODGE };
+
+// 머리 위 "쿨타임 돌아옴" 알림 대상 — **기본공격은 뺀다.**
+// 쿨타임이 0.5초짜리라 누르고 있으면 초당 두 번씩 아이콘이 뜬다. 알림이 계속
+// 깜빡이면 정작 봐야 할 특수공격·회피 복귀가 그 안에 묻힌다.
+export const READY_IDS = TRAY_IDS.filter((id) => id !== 'primary');
