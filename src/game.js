@@ -383,13 +383,18 @@ export class Game {
     this.pickFx = this.pickFx.filter((f) => f.t < f.life);
   }
 
+  // 여기서 필드를 골라 담기 때문에, 새 옵션을 넣을 때 이 목록에 빠뜨리면 조용히 사라진다.
+  // (위상조정탄의 궤적·관통 증폭이 그렇게 오래 죽어 있었다.)
   addProjectile(p) {
     this.projectiles.push({
       x: p.x, y: p.y,
+      x0: p.x, y0: p.y,                       // 쏜 자리 — 궤적을 여기서부터 긋는다
       vx: Math.cos(p.a) * p.speed,
       vy: Math.sin(p.a) * p.speed,
       r: p.r, dmg: p.dmg, pierce: p.pierce || 0,
       clip: p.clip || null, spr: p.spr || null, flip: !!p.flip,
+      trail: p.trail || 0, trailColor: p.trailColor, ghost: p.ghost || 0,
+      grow: p.grow || 0, stagger: p.stagger || 0,
       life: p.life, t: 0, hits: null,
     });
   }
@@ -425,6 +430,7 @@ export class Game {
           const rr = p.r + e.r;
           if (dx * dx + dy * dy > rr * rr) continue;
           this.damageEnemy(e, p.dmg, { knock: 2.6, kx: p.vx, ky: p.vy });
+          if (p.grow) p.dmg = Math.round(p.dmg * (1 + p.grow));   // 뚫을수록 세진다
           if (p.stagger) e.stun = Math.max(e.stun || 0, p.stagger);
           if (p.pierce > 0) {
             p.pierce -= 1;
